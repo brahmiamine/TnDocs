@@ -23,4 +23,6 @@ export const restoreRevisionSchema = z.object({
   expectedRevision: z.number().int().positive(),
 });
 
+export const restoreDocumentSchema = z.object({ action: z.literal("restore") });
+
 export type DocumentContent = z.infer<typeof documentContentSchema>;

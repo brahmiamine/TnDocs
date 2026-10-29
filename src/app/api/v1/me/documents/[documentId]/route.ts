@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
-import { requireSameOrigin } from "@/modules/identity/http";
+import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { decryptDocumentData } from "@/modules/documents/crypto";
-import type { DocumentContent } from "@/modules/documents/schema";
+import { restoreDocumentSchema, type DocumentContent } from "@/modules/documents/schema";
 import { parseFormSchema } from "@/modules/documents/form-schema";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ documentId: string }> }) {
@@ -45,4 +45,21 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ d
   ));
   if (!result[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND", message: "Document not found." }, { status: 404 });
   return NextResponse.json({ id: documentId, status: "trash" }, { headers: { "Cache-Control": "private, no-store" } });
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ documentId: string }> }) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ code: "UNAUTHENTICATED", message: "Authentication required." }, { status: 401 });
+  const db = database;
+  if (!db) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Document service is not configured." }, { status: 503 });
+  const parsed = restoreDocumentSchema.safeParse(await readJsonBody(request, 8 * 1024));
+  if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT", message: "A restore action is required." }, { status: 400 });
+  const { documentId } = await params;
+  const restored = await db.update(personalDocuments).set({ status: "draft" }).where(and(
+    eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id), eq(personalDocuments.status, "trash"),
+  ));
+  if (!restored[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND", message: "Trashed document not found." }, { status: 404 });
+  return NextResponse.json({ id: documentId, status: "draft" }, { headers: { "Cache-Control": "private, no-store" } });
 }

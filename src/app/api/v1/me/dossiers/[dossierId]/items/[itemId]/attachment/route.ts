@@ -1,16 +1,18 @@
-import { createHash, randomUUID } from "node:crypto";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { storeScannedAttachment } from "@/modules/dossiers/attachments";
+import { createHash } from "node:crypto";
+import { and, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import { personalDossierItems, personalDossiers, storedFiles } from "@/platform/database/schema";
-import { decryptAttachment, encryptAttachment } from "@/modules/dossiers/file-crypto";
-import { attachmentStorageKey, deleteStoredAttachment, readEncryptedAttachment, writeEncryptedAttachment } from "@/modules/dossiers/file-storage";
+import { decryptAttachment } from "@/modules/dossiers/file-crypto";
+import { readEncryptedAttachment } from "@/modules/dossiers/file-storage";
 import { detectAllowedMimeType, scanWithClamAv } from "@/modules/dossiers/clamav";
 import { getCurrentUser } from "@/modules/identity/service";
+import { configuredStorageQuota, lockStorageOwner } from "@/platform/storage/quota";
+import { enqueueJob } from "@/platform/jobs/queue";
 import { requireSameOrigin } from "@/modules/identity/http";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const ACCOUNT_QUOTA_BYTES = 100 * 1024 * 1024;
 
 export async function POST(request: Request, { params }: { params: Promise<{ dossierId: string; itemId: string }> }) {
   const originError = requireSameOrigin(request);
@@ -42,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dos
   const [usage] = await database.select({ byteSize: sql<number>`coalesce(sum(${storedFiles.byteSize}), 0)` })
     .from(storedFiles).where(eq(storedFiles.ownerUserId, user.id));
   const previousSize = item.storedFileId ? await database.select({ byteSize: storedFiles.byteSize }).from(storedFiles).where(eq(storedFiles.id, item.storedFileId)).then((rows) => rows[0]?.byteSize ?? 0) : 0;
-  if (Number(usage?.byteSize ?? 0) - previousSize + data.byteLength > ACCOUNT_QUOTA_BYTES) {
+  if (Number(usage?.byteSize ?? 0) - previousSize + data.byteLength > await configuredStorageQuota()) {
     return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED" }, { status: 413 });
   }
 
@@ -51,38 +53,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ dos
   catch { return NextResponse.json({ code: "ANTIVIRUS_UNAVAILABLE" }, { status: 503 }); }
   if (scan === "infected") return NextResponse.json({ code: "UNSAFE_FILE" }, { status: 422 });
 
-  const fileId = randomUUID();
-  const storageKey = attachmentStorageKey(user.id, fileId);
-  let oldStorageKey: string | null = null;
-  if (item.storedFileId) {
-    const [oldFile] = await database.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(and(
-      eq(storedFiles.id, item.storedFileId), eq(storedFiles.ownerUserId, user.id), eq(storedFiles.dossierId, dossierId),
-    )).limit(1);
-    oldStorageKey = oldFile?.storageKey ?? null;
+  try {
+    const result = await storeScannedAttachment({ ownerId: user.id, dossierId, itemId, expectedStoredFileId: item.storedFileId, data, mimeType });
+    return NextResponse.json(result, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "ATTACHMENT_UNAVAILABLE";
+    return NextResponse.json({ code: code === "STORAGE_QUOTA_EXCEEDED" || code === "ATTACHMENT_CHANGED" ? code : "ATTACHMENT_UNAVAILABLE" }, { status: code === "STORAGE_QUOTA_EXCEEDED" ? 413 : code === "ATTACHMENT_CHANGED" ? 409 : 503 });
   }
 
-  try {
-    const encrypted = encryptAttachment(data, user.id, fileId);
-    await writeEncryptedAttachment(storageKey, encrypted.payload);
-    await database.transaction(async (tx) => {
-      await tx.insert(storedFiles).values({
-        id: fileId, ownerUserId: user.id, dossierId, storageKey, mimeType,
-        byteSize: data.byteLength, sha256: createHash("sha256").update(data).digest("hex"),
-        encryptionKeyVersion: encrypted.keyVersion, scanStatus: "clean",
-      });
-      const updated = await tx.update(personalDossierItems).set({ storedFileId: fileId, kind: "file", status: "added" }).where(and(
-        eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId),
-        item.storedFileId ? eq(personalDossierItems.storedFileId, item.storedFileId) : isNull(personalDossierItems.storedFileId),
-      ));
-      if (!updated[0].affectedRows) throw new Error("Dossier item changed while uploading");
-      if (item.storedFileId) await tx.delete(storedFiles).where(eq(storedFiles.id, item.storedFileId));
-    });
-    if (oldStorageKey) await deleteStoredAttachment(oldStorageKey);
-    return NextResponse.json({ storedFileId: fileId, mimeType, byteSize: data.byteLength }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
-    await deleteStoredAttachment(storageKey).catch(() => undefined);
-    return NextResponse.json({ code: "ATTACHMENT_UNAVAILABLE" }, { status: 503 });
-  }
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ dossierId: string; itemId: string }> }) {
@@ -129,10 +107,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ d
   const [file] = await database.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(and(
     eq(storedFiles.id, row.storedFileId), eq(storedFiles.ownerUserId, user.id),
   )).limit(1);
-  await database.transaction(async (tx) => {
-    await tx.update(personalDossierItems).set({ storedFileId: null, kind: row.linkedDocumentId ? "document" : "checklist", status: "missing" }).where(eq(personalDossierItems.id, itemId));
-    await tx.delete(storedFiles).where(eq(storedFiles.id, row.storedFileId!));
-  });
-  if (file) await deleteStoredAttachment(file.storageKey);
+  try {
+    await database.transaction(async (tx) => {
+      await lockStorageOwner(tx, user.id);
+      const [dossier] = await tx.select({ id: personalDossiers.id }).from(personalDossiers).where(and(eq(personalDossiers.id, dossierId), eq(personalDossiers.ownerUserId, user.id), eq(personalDossiers.status, "open"))).for("update").limit(1);
+      if (!dossier) throw new Error("DOSSIER_UNAVAILABLE");
+      const [changed] = await tx.update(personalDossierItems).set({ storedFileId: null, kind: row.linkedDocumentId ? "document" : "checklist", status: "missing" }).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId), eq(personalDossierItems.storedFileId, row.storedFileId!)));
+      if (!changed.affectedRows) throw new Error("ATTACHMENT_CHANGED");
+      if (file) await enqueueJob({ kind: "storage.delete", key: `storage-delete:${file.storageKey}`, payload: { storageKey: file.storageKey }, maxAttempts: 10 }, tx);
+      await tx.delete(storedFiles).where(and(eq(storedFiles.id, row.storedFileId!), eq(storedFiles.ownerUserId, user.id)));
+    });
+  } catch (error) {
+    return NextResponse.json({ code: error instanceof Error && error.message === "ATTACHMENT_CHANGED" ? "ATTACHMENT_CHANGED" : "ATTACHMENT_UNAVAILABLE" }, { status: error instanceof Error && error.message === "ATTACHMENT_CHANGED" ? 409 : 503 });
+  }
   return NextResponse.json({ deleted: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

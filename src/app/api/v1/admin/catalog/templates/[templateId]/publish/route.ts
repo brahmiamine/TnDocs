@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { enqueueJob } from "@/platform/jobs/queue";
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
@@ -49,6 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
     ));
     if (!result[0].affectedRows) return false;
     await tx.update(catalogTemplateVersions).set({ status: "published" }).where(eq(catalogTemplateVersions.id, version.id));
+    await enqueueJob({ kind: "catalog.sync", key: `catalog:${templateId}:${randomUUID()}`, payload: { templateId } }, tx);
     return true;
   });
   if (!changed) return NextResponse.json({ code: "INVALID_STATE", message: "The template changed while publication was being processed." }, { status: 409 });

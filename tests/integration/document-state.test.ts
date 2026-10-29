@@ -1,0 +1,66 @@
+import {after} from 'node:test';
+after(async()=>{if(process.env.DATABASE_URL){const {database}=await import('../../src/platform/database/client');await database?.$client.end();}});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+const enabled=Boolean(process.env.DATABASE_URL&&new URL(process.env.DATABASE_URL).hostname==='127.0.0.1'&&/^tndocs_verify\d+$/.test(new URL(process.env.DATABASE_URL).pathname.slice(1)));
+test('MariaDB private models preserve pinned blueprints and finalized document revisions across lifecycle',{skip:!enabled},async()=>{
+ const {database}=await import('../../src/platform/database/client');
+ const {users,personalDocuments,documentRevisions}=await import('../../src/platform/database/schema');
+ const {privateTemplates}=await import('../../src/modules/private-templates/db-schema');
+ const {createPrivateTemplate,getPrivateTemplate,updatePrivateTemplate,instantiatePrivateTemplate,getPrivateDocumentDefinition,deletePrivateTemplate}=await import('../../src/modules/private-templates/service');
+ const {changeDocumentState}=await import('../../src/modules/document-state/service');
+ const {encryptDocumentData,decryptDocumentData}=await import('../../src/modules/documents/crypto');
+ const {documentStateMetadata}=await import('../../src/modules/document-state/db-schema');
+ const {eq,and,inArray}=await import('drizzle-orm');
+ const quotaBefore=process.env.ACCOUNT_STORAGE_QUOTA_BYTES;
+ const owner=randomUUID(),other=randomUUID();let templateId:string|undefined;let docId:string|undefined;
+ await database!.insert(users).values([{id:owner,email:`fixture-${owner}@example.test`,passwordHash:'synthetic-test-hash',status:'active'},{id:other,email:`fixture-${other}@example.test`,passwordHash:'synthetic-test-hash',status:'active'}]);
+ try{
+  const blueprint={title:'Fictional model',body:'Bonjour {{name}}',locale:'fr' as const,formSchema:{schemaVersion:1 as const,fields:[{key:'name',kind:'text' as const,label:{fr:'Nom fictif',ar:'اسم خيالي'},required:true}]}};
+  const model=await createPrivateTemplate(owner,blueprint);templateId=model.id;
+  assert.equal(await getPrivateTemplate(other,model.id),null);
+  assert.equal(await instantiatePrivateTemplate(other,model.id),null);
+  const draft=await instantiatePrivateTemplate(owner,model.id);assert.ok(draft);docId=draft.id;
+  assert.equal(await getPrivateDocumentDefinition(draft.id,other),null);
+  await updatePrivateTemplate(owner,model.id,1,{body:'NEW {{name}}',title:'New model'});
+  assert.equal((await getPrivateDocumentDefinition(draft.id,owner))!.body,'Bonjour {{name}}');
+  assert.equal((await getPrivateTemplate(owner,model.id,1))!.blueprint.body,'Bonjour {{name}}');
+  await assert.rejects(changeDocumentState(owner,draft.id,{action:'finalize',expectedRevision:1}),/INVALID_ANSWERS/);
+  assert.equal(await changeDocumentState(other,draft.id,{action:'favorite',favorite:true,expectedRevision:1}),null);
+  const filled={title:blueprint.title,body:blueprint.body,locale:'fr',answers:{name:'Personne fictive'}};
+  const encrypted=encryptDocumentData(filled,owner,draft.id,2);
+  await database!.transaction(async tx=>{await tx.insert(documentRevisions).values({id:randomUUID(),documentId:draft.id,revision:2,contentCiphertext:encrypted.ciphertext,encryptionKeyVersion:encrypted.keyVersion,createdBy:owner});await tx.update(personalDocuments).set({currentRevision:2}).where(eq(personalDocuments.id,draft.id));});
+  const finalized=await changeDocumentState(owner,draft.id,{action:'finalize',expectedRevision:2});assert.equal(finalized!.status,'finalized');assert.equal(finalized!.revision,2);
+  await assert.rejects(changeDocumentState(owner,draft.id,{action:'rename',title:'Invalid overwrite',expectedRevision:2}),/INVALID_STATE/);
+  const reopened=await changeDocumentState(owner,draft.id,{action:'reopen',expectedRevision:2});assert.equal(reopened!.revision,3);assert.equal(reopened!.status,'draft');
+  await assert.rejects(changeDocumentState(owner,draft.id,{action:'rename',title:'Stale',expectedRevision:2}),/REVISION_CONFLICT/);
+  const [frozen]=await database!.select().from(documentRevisions).where(and(eq(documentRevisions.documentId,draft.id),eq(documentRevisions.revision,2)));
+  assert.equal(frozen.contentCiphertext,encrypted.ciphertext);
+  assert.deepEqual(decryptDocumentData(frozen.contentCiphertext,frozen.encryptionKeyVersion,owner,draft.id,2),filled);
+  const renamed=await changeDocumentState(owner,draft.id,{action:'rename',title:'Renamed draft',expectedRevision:3});assert.equal(renamed!.revision,4);
+  await changeDocumentState(owner,draft.id,{action:'finalize',expectedRevision:4});
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'archive',expectedRevision:4}))!.status,'archived');
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'trash',expectedRevision:4}))!.status,'trash');
+  const {trashMarkers}=await import('../../src/platform/retention/schema');
+  await database!.update(trashMarkers).set({purgeAfter:new Date(Date.now()-1000)}).where(and(eq(trashMarkers.resourceId,draft.id),eq(trashMarkers.resourceKind,'document')));
+  await assert.rejects(changeDocumentState(owner,draft.id,{action:'restore',expectedRevision:4}),/TRASH_RETENTION_EXPIRED/);
+  await database!.update(trashMarkers).set({purgeAfter:new Date(Date.now()+86400000)}).where(and(eq(trashMarkers.resourceId,draft.id),eq(trashMarkers.resourceKind,'document')));
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'restore',expectedRevision:4}))!.status,'archived');
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'unarchive',expectedRevision:4}))!.status,'finalized');
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'favorite',favorite:true,expectedRevision:4}))!.favorite,true);
+  const [flags]=await database!.select().from(documentStateMetadata).where(eq(documentStateMetadata.documentId,draft.id));assert.equal(flags.favorite,1);
+  process.env.ACCOUNT_STORAGE_QUOTA_BYTES='1';
+  await assert.rejects(createPrivateTemplate(owner,blueprint),/STORAGE_QUOTA_EXCEEDED/);
+  // A full account must still be able to change metadata and remove models to reclaim capacity.
+  assert.equal((await changeDocumentState(owner,draft.id,{action:'favorite',favorite:false,expectedRevision:4}))!.favorite,false);
+  assert.equal(await deletePrivateTemplate(other,model.id),false);
+  assert.equal(await deletePrivateTemplate(owner,model.id),true);
+  assert.equal((await getPrivateDocumentDefinition(draft.id,owner))!.body,'Bonjour {{name}}');
+ }finally{
+  if(quotaBefore===undefined)delete process.env.ACCOUNT_STORAGE_QUOTA_BYTES;else process.env.ACCOUNT_STORAGE_QUOTA_BYTES=quotaBefore;
+  if(docId)await database!.delete(personalDocuments).where(eq(personalDocuments.id,docId));
+  if(templateId)await database!.delete(privateTemplates).where(eq(privateTemplates.id,templateId));
+  await database!.delete(users).where(inArray(users.id,[owner,other]));
+ }
+});

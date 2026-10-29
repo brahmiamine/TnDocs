@@ -24,3 +24,5 @@ work/
 
 # Local data volumes
 .data/
+
+.next-production/

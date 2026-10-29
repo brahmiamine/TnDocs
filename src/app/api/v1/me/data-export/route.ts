@@ -12,6 +12,7 @@ import { decryptDocumentData, decryptDossierData } from "@/modules/documents/cry
 import { decryptProfileData } from "@/modules/profiles/crypto";
 import type { DocumentContent } from "@/modules/documents/schema";
 import type { ProfileData } from "@/modules/profiles/schema";
+import { exportOwnSignatureData } from "@/modules/signatures/export-data";
 import { getCurrentUser } from "@/modules/identity/service";
 
 export async function GET() {
@@ -31,6 +32,7 @@ export async function GET() {
     ]);
     const exported = {
       generatedAt: new Date().toISOString(),
+      signatures: await exportOwnSignatureData(user.id),
       account: { id: user.id, email: user.email, preferredLocale: user.preferredLocale },
       profiles: profileRows.map((row) => ({
         id: row.id, relationship: row.relationship, authorizationBasis: row.authorizationBasis,

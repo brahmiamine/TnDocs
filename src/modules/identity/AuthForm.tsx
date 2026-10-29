@@ -1,11 +1,13 @@
 "use client";
 
+import {safePostAuthPath} from "./return-path";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 
-type AuthFormProps = { locale: "fr" | "ar"; mode: "login" | "register" };
+type AuthFormProps = { locale: "fr" | "ar"; mode: "login" | "register"; googleEnabled?: boolean; returnTo?: string|null };
 
-export function AuthForm({ locale, mode }: AuthFormProps) {
+export function AuthForm({ locale, mode, googleEnabled = false, returnTo }: AuthFormProps) {
+  useEffect(()=>{const path=safePostAuthPath(returnTo,locale);if(path)try{sessionStorage.setItem("tndocs-auth-return",path)}catch{}},[returnTo,locale]);
   const isArabic = locale === "ar";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +32,7 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
       if (isRegister) {
         setMessage(isArabic ? "إذا كان بإمكاننا إنشاء الحساب، فستصلك رسالة لتأكيد بريدك الإلكتروني." : "Si le compte peut être créé, un message de confirmation vient d’être envoyé à cette adresse.");
       } else {
-        window.location.assign(`/${locale}/mes-documents`);
+        window.location.assign(`/${locale}/${result.status === "mfa_required" ? "securite" : "mes-documents"}`);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : (isArabic ? "تعذر الاتصال بالخدمة." : "Le service est momentanément indisponible."));
@@ -39,6 +41,25 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
     }
   }
 
+  async function resend() {
+    setPending(true);
+    try {
+      const response = await fetch("/api/v1/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      if (!response.ok) throw new Error("Failed");
+      setMessage(isArabic ? "إذا كان الحساب مؤهلاً، فسيُرسل رابط تأكيد جديد." : "Si ce compte est éligible, un nouveau lien de confirmation sera envoyé.");
+    } catch { setError(isArabic ? "الخدمة غير متاحة." : "Service indisponible."); }
+    finally { setPending(false); }
+  }
+  async function googleLogin() {
+    setPending(true); setError("");
+    try {
+      const response = await fetch(`/api/v1/auth/google?locale=${locale}`, { method: "POST" });
+      const result = await response.json();
+      if (!response.ok || !result.url) throw new Error(isArabic ? "الدخول عبر Google غير مُعدّ حالياً." : "La connexion Google n’est pas configurée actuellement.");
+      window.location.assign(result.url);
+    } catch (error) { setError(error instanceof Error ? error.message : "Service indisponible"); }
+    finally { setPending(false); }
+  }
   return (
     <section className="auth-card">
       <div className="eyebrow">{isRegister ? (isArabic ? "إنشاء حساب" : "CRÉER UN COMPTE") : (isArabic ? "مساحتك الشخصية" : "VOTRE ESPACE PERSONNEL")}</div>
@@ -55,6 +76,9 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
         {message && <p className="form-message form-success" role="status">{message}</p>}
         <button className="button auth-submit" type="submit" disabled={pending}>{pending ? (isArabic ? "جارٍ الإرسال…" : "En cours…") : (isRegister ? (isArabic ? "إنشاء الحساب" : "Créer mon compte") : (isArabic ? "تسجيل الدخول" : "Se connecter"))}</button>
       </form>
+      {isRegister && message && <button disabled={pending || !email} onClick={() => void resend()}>{isArabic ? "إرسال تأكيد جديد" : "Renvoyer la confirmation"}</button>}
+      {!isRegister && <p><Link href={`/${locale}/connexion-email`}>{isArabic ? "الدخول برابط عبر البريد" : "Recevoir un lien de connexion"}</Link></p>}
+      {!isRegister && googleEnabled && <button className="button secondary" disabled={pending} onClick={() => void googleLogin()}>{isArabic ? "الدخول عبر Google" : "Continuer avec Google"}</button>}
       <p className="auth-switch">{isRegister ? (isArabic ? "لديك حساب؟" : "Vous avez déjà un compte ?") : (isArabic ? "ليس لديك حساب؟" : "Pas encore de compte ?")} <Link href={`/${locale}/${isRegister ? "connexion" : "inscription"}`}>{isRegister ? (isArabic ? "سجّل الدخول" : "Se connecter") : (isArabic ? "إنشاء حساب" : "Créer un compte")}</Link></p>
     </section>
   );

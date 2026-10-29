@@ -40,6 +40,8 @@ export async function POST(request: Request) {
         gt(verificationChallenges.expiresAt, new Date()),
       )).for("update").limit(1);
       if (!locked) throw new Error("Challenge was already used or expired");
+      const [account] = await tx.select({ status: users.status }).from(users).where(eq(users.id, challenge.userId)).for("update").limit(1);
+      if (!account || account.status !== "pending_verification") throw new Error("Account cannot be activated");
       await tx.update(verificationChallenges).set({ usedAt: new Date() }).where(eq(verificationChallenges.id, locked.id));
       await tx.update(users).set({ status: "active", emailVerifiedAt: new Date() }).where(eq(users.id, challenge.userId));
       await tx.insert(sessions).values({

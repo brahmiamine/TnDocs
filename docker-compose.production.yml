@@ -1,0 +1,67 @@
+# Template only: requires a reviewed .env.production and capacity validation.
+name: tndocs
+services:
+  web:
+    image: tndocs-web:${IMAGE_TAG:?Set the reviewed commit SHA}
+    build:
+      context: .
+      target: runner
+    env_file: .env.production
+    ports: ["127.0.0.1:3000:3000"]
+    volumes: ["private_storage:/app/.data/storage"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    mem_limit: ${WEB_MEMORY_LIMIT:-512m}
+  worker:
+    image: tndocs-worker:${IMAGE_TAG:?Set the reviewed commit SHA}
+    build:
+      context: .
+      target: worker
+    env_file: .env.production
+    volumes: ["private_storage:/app/.data/storage"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    pids_limit: 256
+    mem_limit: ${WORKER_MEMORY_LIMIT:-768m}
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: tndocs
+      MARIADB_USER: tndocs
+      MARIADB_PASSWORD: ${DATABASE_PASSWORD:?Set database password}
+      MARIADB_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:?Set separate root password}
+    volumes: ["database:/var/lib/mysql"]
+    restart: unless-stopped
+    mem_limit: ${DATABASE_MEMORY_LIMIT:-768m}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:?Set search key}
+      MEILI_NO_ANALYTICS: "true"
+    volumes: ["search:/meili_data"]
+    restart: unless-stopped
+    mem_limit: ${SEARCH_MEMORY_LIMIT:-512m}
+  clamav:
+    image: clamav/clamav:1.4.3
+    volumes: ["antivirus:/var/lib/clamav"]
+    restart: unless-stopped
+    mem_limit: ${ANTIVIRUS_MEMORY_LIMIT:-1536m}
+volumes:
+  private_storage:
+  database:
+  search:
+  antivirus:

@@ -1,3 +1,4 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -6,7 +7,8 @@ import { catalogTemplateTranslations, catalogTemplateVersions, catalogTemplates,
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { encryptDocumentData } from "@/modules/documents/crypto";
-import { createDocumentSchema, type DocumentContent } from "@/modules/documents/schema";
+import { createDocumentSchema } from "@/modules/documents/schema";
+import { createPinnedDocumentContent } from "@/modules/documents/bilingual";
 import { parseFormSchema } from "@/modules/documents/form-schema";
 
 export async function GET(request: Request) {
@@ -46,10 +48,12 @@ export async function POST(request: Request) {
   if (!translation) return NextResponse.json({ code: "LOCALE_UNAVAILABLE", message: "This template is not available in that language." }, { status: 409 });
 
   const documentId = randomUUID();
-  const content: DocumentContent = { title: translation.title, locale: parsed.data.locale, body: translation.body, answers: {} };
   try {
+    const translations = parsed.data.bilingual ? await db.select({title:catalogTemplateTranslations.title,locale:catalogTemplateTranslations.locale,body:catalogTemplateTranslations.body}).from(catalogTemplateTranslations).where(eq(catalogTemplateTranslations.versionId,template.publishedVersionId)) : [translation];
+    const content = createPinnedDocumentContent(parsed.data.locale,translations,parsed.data.bilingual===true,parsedFormSchema);
     const encrypted = encryptDocumentData(content, user.id, documentId, 1);
     await db.transaction(async (tx) => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
       await tx.insert(personalDocuments).values({
         id: documentId, ownerUserId: user.id, templateId: template.id, templateVersionId: template.publishedVersionId,
         title: translation.title, currentRevision: 1,
@@ -60,7 +64,9 @@ export async function POST(request: Request) {
       });
     });
     return NextResponse.json({ id: documentId, title: translation.title, revision: 1, formSchema: parsedFormSchema }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && ["LOCALE_UNAVAILABLE","TEMPLATE_SCHEMA_INVALID"].includes(error.message)) return NextResponse.json({code:error.message,message:error.message==="LOCALE_UNAVAILABLE"?"Both French and Arabic translations must be available on the published version.":"Both translations must use fields from the same published form schema."},{status:409});
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED", message: "The account storage quota is reached." }, { status: 413 });
     return NextResponse.json({ code: "DOCUMENT_UNAVAILABLE", message: "The draft could not be created. Check the encryption configuration." }, { status: 503 });
   }
 }

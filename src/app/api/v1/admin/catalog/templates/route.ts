@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     const draft = await createCatalogDraft(parsed.data, user.id);
     return NextResponse.json(draft, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof Error && error.message === "UNKNOWN_ORGANIZATION") return NextResponse.json({code:"UNKNOWN_ORGANIZATION",message:"The selected organization is missing or inactive."},{status:400});
     if (error instanceof Error && error.message === "UNKNOWN_CATEGORY") {
-      return NextResponse.json({ code: "UNKNOWN_CATEGORY", message: "One or more category slugs do not exist." }, { status: 400 });
+      return NextResponse.json({ code: "UNKNOWN_CATEGORY", message: "One or more categories are missing or inactive." }, { status: 400 });
     }
     return NextResponse.json({ code: "CATALOG_UNAVAILABLE", message: "The draft could not be saved." }, { status: 503 });
   }

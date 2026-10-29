@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
 import { users, verificationChallenges } from "@/platform/database/schema";
@@ -34,25 +33,15 @@ export async function POST(request: Request) {
   const verification = createSecretToken();
 
   try {
-    await database.insert(users).values({ id, email, passwordHash, preferredLocale: locale });
+    await database.transaction(async tx => {
+      await tx.insert(users).values({ id, email, passwordHash, preferredLocale: locale });
+      await tx.insert(verificationChallenges).values({ id: randomUUID(), userId: id, purpose: "email_verification", tokenHash: verification.hash, expiresAt: new Date(Date.now() + 30 * 60 * 1000) });
+      await sendVerificationEmail(email, verification.token, locale, id, tx);
+    });
   } catch (error) {
-    // Do not reveal whether the address is already registered.
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "ER_DUP_ENTRY") {
-      return NextResponse.json({ status: "verification_sent" }, { status: 202 });
-    }
+    const detail = typeof error === "object" && error !== null && "cause" in error ? error.cause : error;
+    if (typeof detail === "object" && detail !== null && "code" in detail && detail.code === "ER_DUP_ENTRY") return NextResponse.json({ status: "verification_sent" }, { status: 202 });
     return serviceUnavailable();
   }
-
-  try {
-    await database.insert(verificationChallenges).values({
-      id: randomUUID(), userId: id, purpose: "email_verification", tokenHash: verification.hash,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    });
-    await sendVerificationEmail(email, verification.token, locale);
-  } catch {
-    await database.delete(users).where(eq(users.id, id));
-    return NextResponse.json({ status: "verification_sent" }, { status: 202 });
-  }
-
   return NextResponse.json({ status: "verification_sent" }, { status: 202 });
 }

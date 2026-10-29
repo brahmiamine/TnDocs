@@ -1,3 +1,4 @@
+import { assertStorageQuota, lockStorageOwner } from "@/platform/storage/quota";
 import { and, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
@@ -36,10 +37,22 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try { encrypted = encryptProfileData(parsed.data.data, user.id, profileId); }
   catch { return NextResponse.json({ code: "ENCRYPTION_UNAVAILABLE", message: "Profile encryption is not configured." }, { status: 503 }); }
   const basis = parsed.data.relationship === "self" ? "self" : parsed.data.authorizationBasis!;
-  await database.update(personProfiles).set({
-    relationship: parsed.data.relationship, authorizationBasis: basis, authorizationConfirmedAt: new Date(),
-    dataCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion,
-  }).where(and(eq(personProfiles.id, profileId), eq(personProfiles.ownerUserId, user.id)));
+  try {
+    await database.transaction(async (tx) => {
+      await lockStorageOwner(tx, user.id);
+      const [current] = await tx.select().from(personProfiles).where(and(eq(personProfiles.id, profileId), eq(personProfiles.ownerUserId, user.id))).for("update").limit(1);
+      if (!current) throw new Error("PROFILE_NOT_FOUND");
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext), Buffer.byteLength(current.dataCiphertext));
+      if (parsed.data.relationship === "self") {
+        const [primary] = await tx.select({ id: personProfiles.id }).from(personProfiles).where(and(eq(personProfiles.ownerUserId, user.id), eq(personProfiles.relationship, "self"), ne(personProfiles.id, profileId))).limit(1);
+        if (primary) throw new Error("PRIMARY_PROFILE_EXISTS");
+      }
+      await tx.update(personProfiles).set({ relationship: parsed.data.relationship, authorizationBasis: basis, authorizationConfirmedAt: new Date(), dataCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion }).where(and(eq(personProfiles.id, profileId), eq(personProfiles.ownerUserId, user.id)));
+    });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "PROFILE_UNAVAILABLE";
+    return NextResponse.json({ code: ["STORAGE_QUOTA_EXCEEDED", "PROFILE_NOT_FOUND", "PRIMARY_PROFILE_EXISTS"].includes(code) ? code : "PROFILE_UNAVAILABLE" }, { status: code === "STORAGE_QUOTA_EXCEEDED" ? 413 : code === "PROFILE_NOT_FOUND" ? 404 : code === "PRIMARY_PROFILE_EXISTS" ? 409 : 503 });
+  }
   return NextResponse.json({ id: profileId, relationship: parsed.data.relationship, data: parsed.data.data }, { headers: { "Cache-Control": "private, no-store" } });
 }
 

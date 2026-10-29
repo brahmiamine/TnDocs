@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { database } from "@/platform/database/client";
 import { sessions, users } from "@/platform/database/schema";
 import { createSecretToken, hashSecretToken } from "./tokens";
+import { sessionFactors, userSecondFactors } from "./advanced-schema";
+import { mustUseMfa } from "./totp";
 
 export const sessionCookieName = process.env.NODE_ENV === "production" ? "__Host-tndocs_session" : "tndocs_session";
 export const sessionLifetimeSeconds = 60 * 60 * 24 * 30;
@@ -24,11 +26,12 @@ export async function createSession(userId: string) {
   return rawToken.token;
 }
 
-export async function getCurrentUser() {
+export async function getSessionUser() {
   const token = (await cookies()).get(sessionCookieName)?.value;
   if (!token || !database) return null;
   const [row] = await database.select({
     user: { id: users.id, email: users.email, preferredLocale: users.preferredLocale, role: users.role },
+    sessionId: sessions.id, sessionCreatedAt: sessions.createdAt,
   }).from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(and(
@@ -37,7 +40,16 @@ export async function getCurrentUser() {
       gt(sessions.expiresAt, new Date()),
       eq(users.status, "active"),
     )).limit(1);
-  return row?.user ?? null;
+  if (!row) return null;
+  const [factor] = await database.select({ enabledAt: userSecondFactors.enabledAt }).from(userSecondFactors).where(eq(userSecondFactors.userId, row.user.id)).limit(1);
+  const [verified] = await database.select().from(sessionFactors).where(eq(sessionFactors.sessionId, row.sessionId)).limit(1);
+  const mfaEnabled = Boolean(factor?.enabledAt);
+  return { ...row.user, sessionId: row.sessionId, sessionCreatedAt: row.sessionCreatedAt, mfaEnabled, mfaVerified: Boolean(verified), mfaRequired: mustUseMfa(row.user.role, mfaEnabled) };
+}
+
+export async function getCurrentUser() {
+  const user = await getSessionUser();
+  return user && (!user.mfaRequired || user.mfaVerified) ? user : null;
 }
 
 export function setSessionCookie(response: Response, token: string) {

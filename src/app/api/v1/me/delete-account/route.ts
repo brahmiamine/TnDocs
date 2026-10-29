@@ -1,4 +1,6 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { ensureAdminDeletionAllowed } from "@/modules/administration/users";
+import { artifactReservations } from "@/platform/jobs/artifacts-schema";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
@@ -8,7 +10,9 @@ import { burnPasswordCheck, verifyPassword } from "@/modules/identity/password";
 import { isRateLimited } from "@/modules/identity/rate-limit";
 import { readJsonBody, requireSameOrigin, serviceUnavailable } from "@/modules/identity/http";
 import { hashSecretToken } from "@/modules/identity/tokens";
-import { deleteStoredAttachment } from "@/modules/dossiers/file-storage";
+import { lockStorageOwner } from "@/platform/storage/quota";
+import { enqueueJob } from "@/platform/jobs/queue";
+import { jobs } from "@/platform/jobs/schema";
 
 const deletionSchema = z.object({ password: z.string().min(1).max(256), confirmation: z.literal(true) });
 
@@ -39,15 +43,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "ACCOUNT_HAS_CATALOG_CONTRIBUTIONS", message: "This account owns catalog records and must be transferred before deletion." }, { status: 409 });
   }
 
-  const fileObjects = await db.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(eq(storedFiles.ownerUserId, user.id));
+  try {
   await db.transaction(async (tx) => {
+    await ensureAdminDeletionAllowed(tx, user.id);
+    await lockStorageOwner(tx, user.id);
+    const fileObjects = await tx.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(eq(storedFiles.ownerUserId, user.id));
     const ownedDocuments = await tx.select({ id: personalDocuments.id }).from(personalDocuments).where(eq(personalDocuments.ownerUserId, user.id));
     if (ownedDocuments.length) {
       await tx.delete(documentRevisions).where(inArray(documentRevisions.documentId, ownedDocuments.map((document) => document.id)));
     }
+    const artifacts = await tx.select().from(jobs).where(and(eq(jobs.ownerUserId, user.id), or(eq(jobs.kind, "document.export"), eq(jobs.kind, "signature.export"), eq(jobs.kind, "attachment.upload")))).for("update");
+    for (const file of fileObjects) await enqueueJob({ kind: "storage.delete", key: `storage-delete:${file.storageKey}`, payload: { storageKey: file.storageKey }, maxAttempts: 10 }, tx);
+    for (const artifact of artifacts) {
+      const key = typeof artifact.result?.storageKey === "string" ? artifact.result.storageKey : typeof artifact.payload.storageKey === "string" ? artifact.payload.storageKey : `${user.id}/${artifact.id}.enc`;
+      const cleanup = await enqueueJob({ kind: "storage.delete", key: `storage-delete:${key}`, payload: { storageKey: key }, maxAttempts: 10 }, tx);
+      // A renderer already running may still be stopping. Delete after its old
+      // lease ends, while fencing prevents it from publishing a new result.
+      if (artifact.leaseExpiresAt) await tx.update(jobs).set({ availableAt: new Date(Math.max(Date.now(), artifact.leaseExpiresAt.getTime() + 60000)) }).where(eq(jobs.id, cleanup.id));
+      await tx.delete(artifactReservations).where(eq(artifactReservations.storageKey, key));
+      await tx.update(jobs).set({ status: "cancelled", leaseToken: null, leaseExpiresAt: null, result: { expired: true } }).where(eq(jobs.id, artifact.id));
+    }
     await tx.delete(users).where(and(eq(users.id, user.id), eq(users.status, "active")));
   });
-  await Promise.all(fileObjects.map(({ storageKey }) => deleteStoredAttachment(storageKey).catch(() => undefined)));
+  } catch (error) {
+    if (error instanceof Error && error.message === "LAST_ACTIVE_ADMIN") return NextResponse.json({ code: "LAST_ACTIVE_ADMIN", message: "Transfer administrator access to another verified active account before deleting this account." }, { status: 409 });
+    return NextResponse.json({ code: "ACCOUNT_DELETION_UNAVAILABLE", message: "The account could not be deleted. Try again later." }, { status: 503 });
+  }
 
   const response = NextResponse.json({ status: "account_deleted" }, { headers: { "Cache-Control": "private, no-store" } });
   clearSessionCookie(response);

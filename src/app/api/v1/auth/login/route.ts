@@ -8,6 +8,8 @@ import { readJsonBody, requireSameOrigin, serviceUnavailable } from "@/modules/i
 import { burnPasswordCheck, verifyPassword } from "@/modules/identity/password";
 import { createSecretToken } from "@/modules/identity/tokens";
 import { sessionLifetimeSeconds, setSessionCookie } from "@/modules/identity/service";
+import { identityAuditEvents, userSecondFactors } from "@/modules/identity/advanced-schema";
+import { mustUseMfa } from "@/modules/identity/totp";
 import { isRateLimited } from "@/modules/identity/rate-limit";
 
 const inputSchema = z.object({ email: z.string().trim().email().max(320).transform((value) => value.toLowerCase()), password: z.string().min(1).max(128) });
@@ -36,11 +38,15 @@ export async function POST(request: Request) {
 
   await database.delete(loginAttemptLimits).where(eq(loginAttemptLimits.keyHash, limitKey));
   const session = createSecretToken();
-  await database.insert(sessions).values({
+  await database.transaction(async tx => {
+  await tx.insert(sessions).values({
     id: randomUUID(), userId: user.id, tokenHash: session.hash,
     expiresAt: new Date(Date.now() + sessionLifetimeSeconds * 1000),
   });
-  const response = NextResponse.json({ status: "authenticated", locale: user.preferredLocale });
+  await tx.insert(identityAuditEvents).values({ id: randomUUID(), userId: user.id, event: "password_login" });
+  });
+  const [factor] = await database.select({ enabledAt: userSecondFactors.enabledAt }).from(userSecondFactors).where(eq(userSecondFactors.userId, user.id)).limit(1);
+  const response = NextResponse.json({ status: mustUseMfa(user.role, Boolean(factor?.enabledAt)) ? "mfa_required" : "authenticated", locale: user.preferredLocale });
   setSessionCookie(response, session.token);
   return response;
 }

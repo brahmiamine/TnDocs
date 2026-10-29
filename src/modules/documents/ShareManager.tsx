@@ -1,90 +1,68 @@
 "use client";
-
 import { useCallback, useEffect, useState } from "react";
+type Permissions = { view: boolean; copy: boolean; edit: boolean };
+type Share = { id: string; revision: number; permissions: Permissions | null; recipientEmail: string | null; legacyDisabled: boolean; createdAt: string; expiresAt: string; revokedAt: string | null; events: Array<{ action: string; revision: number; createdAt: string }> };
 
-type Share = { id: string; revision: number; permission: "view" | "copy"; createdAt: string; expiresAt: string; revokedAt: string | null };
-
-export function ShareManager({ documentId, locale, disabled }: { documentId: string; locale: "fr" | "ar"; disabled: boolean }) {
-  const isArabic = locale === "ar";
+export function ShareManager({ documentId, revision, locale, disabled }: { documentId: string; revision: number; locale: "fr" | "ar"; disabled: boolean }) {
+  const ar = locale === "ar";
   const [shares, setShares] = useState<Share[]>([]);
-  const [days, setDays] = useState(7);
-  const [permission, setPermission] = useState<"view" | "copy">("view");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [permissions, setPermissions] = useState<Permissions>({ view: true, copy: false, edit: false });
   const [newUrl, setNewUrl] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
   const refresh = useCallback(async () => {
     const response = await fetch(`/api/v1/me/documents/${documentId}/shares`, { cache: "no-store" });
-    if (!response.ok) throw new Error(isArabic ? "تعذر تحميل روابط المشاركة." : "Impossible de charger les liens de partage.");
-    const result = await response.json() as { shares: Share[] };
-    setShares(result.shares);
-  }, [documentId, isArabic]);
-
+    if (!response.ok) throw new Error(ar ? "تعذر تحميل المشاركات." : "Impossible de charger les partages.");
+    const result = await response.json(); setShares(result.shares);
+  }, [documentId, ar]);
   useEffect(() => { void refresh().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Erreur")); }, [refresh]);
-
-  async function createShare() {
-    setBusy(true); setError(""); setMessage(""); setNewUrl("");
+  async function createShare(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setError(""); setMessage(""); setNewUrl("");
     try {
-      const response = await fetch(`/api/v1/me/documents/${documentId}/shares`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresInDays: days, locale, permission }),
-      });
-      const result = await response.json() as { url?: string };
-      if (!response.ok || !result.url) throw new Error(isArabic ? "تعذر إنشاء الرابط." : "Impossible de créer le lien.");
+      const response = await fetch(`/api/v1/me/documents/${documentId}/shares`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, expectedRevision: revision, expiresAt: new Date(expiresAt).toISOString(), locale, permissions }) });
+      const result = await response.json();
+      if (!response.ok || !result.url) throw new Error(result.code === "REVISION_CONFLICT" ? (ar ? "تغيرت الوثيقة. أعد تحميلها قبل المشاركة." : "Le document a changé. Rechargez-le avant de partager.") : (ar ? "تعذر إنشاء المشاركة. تحقق من البريد والتاريخ والصلاحيات." : "Création impossible. Vérifiez le destinataire, l’expiration et les droits."));
       setNewUrl(result.url);
-      setMessage(isArabic ? "الرابط يعرض نسخة ثابتة للقراءة فقط." : "Le lien affiche cette révision en lecture seule.");
+      setMessage(ar ? "تم إنشاء رابط مخصص. أرسله للمستلم؛ يلزمه تسجيل الدخول بحساب بريده المؤكد." : "Lien nominatif créé. Transmettez-le au destinataire ; il devra se connecter avec ce compte email vérifié.");
       await refresh();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : (isArabic ? "تعذر إنشاء الرابط." : "Impossible de créer le lien."));
-    } finally { setBusy(false); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Erreur"); }
+    finally { setBusy(false); }
   }
-
   async function revoke(shareId: string) {
-    const response = await fetch(`/api/v1/me/documents/${documentId}/shares/${shareId}`, { method: "DELETE" });
-    if (!response.ok) { setError(isArabic ? "تعذر إلغاء الرابط." : "Impossible de révoquer le lien."); return; }
-    setNewUrl("");
-    await refresh();
-  }
-
-  async function copyLink() {
+    setBusy(true); setError("");
     try {
-      await navigator.clipboard.writeText(newUrl);
-      setMessage(isArabic ? "تم نسخ الرابط." : "Lien copié.");
-    } catch {
-      setError(isArabic ? "تعذر النسخ. انسخ الرابط يدوياً." : "Copie impossible. Copiez le lien manuellement.");
-    }
+      const response = await fetch(`/api/v1/me/documents/${documentId}/shares/${shareId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(ar ? "تعذر إلغاء المشاركة." : "Impossible de révoquer le partage.");
+      setNewUrl(""); await refresh();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Erreur"); }
+    finally { setBusy(false); }
   }
-
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(newUrl); setMessage(ar ? "تم نسخ الرابط." : "Lien copié."); }
+    catch { setError(ar ? "انسخ الرابط يدوياً." : "Copiez le lien manuellement."); }
+  }
+  const labels: Record<keyof Permissions, string> = { view: ar ? "عرض" : "Consulter", copy: ar ? "نسخ إلى حسابه" : "Copier dans son compte", edit: ar ? "تعديل الوثيقة المشتركة" : "Modifier le document partagé" };
+  const eventLabels: Record<string, string> = { viewed: ar ? "فتح" : "Consultation", copied: ar ? "نسخ" : "Copie", edited: ar ? "تعديل" : "Modification" };
   return <section className="revision-history share-manager">
-    <h2>{isArabic ? "مشاركة للقراءة فقط" : "Partager en lecture seule"}</h2>
-    <p>{isArabic ? "سيتمكن أي شخص لديه الرابط من قراءة هذه النسخة. لا تشارك بيانات لا تريد كشفها." : "Toute personne qui possède le lien pourra lire cette révision. Évitez d’y inclure des données que vous ne souhaitez pas divulguer."}</p>
-    <div className="share-create-row">
-      <label htmlFor="share-expiry">{isArabic ? "مدة الصلاحية" : "Expiration"}</label>
-      <select id="share-expiry" value={days} onChange={(event) => setDays(Number(event.target.value))}>
-        <option value={1}>{isArabic ? "يوم واحد" : "1 jour"}</option>
-        <option value={7}>{isArabic ? "7 أيام" : "7 jours"}</option>
-        <option value={30}>{isArabic ? "30 يوماً" : "30 jours"}</option>
-      </select>
-      <label htmlFor="share-permission">{isArabic ? "الصلاحية" : "Droit"}</label>
-      <select id="share-permission" value={permission} onChange={(event) => setPermission(event.target.value as "view" | "copy")}>
-        <option value="view">{isArabic ? "عرض" : "Consulter"}</option>
-        <option value="copy">{isArabic ? "عرض ونسخ" : "Consulter et copier"}</option>
-      </select>
-      <button className="button button-quiet" type="button" disabled={disabled || busy} onClick={() => void createShare()}>
-        {busy ? (isArabic ? "جارٍ الإنشاء…" : "Création…") : (isArabic ? "إنشاء رابط" : "Créer un lien")}
-      </button>
-    </div>
-    {disabled && <p className="form-hint">{isArabic ? "احفظ التعديلات قبل إنشاء رابط." : "Enregistrez les modifications avant de créer un lien."}</p>}
-    {newUrl && <div className="share-link-box"><input aria-label={isArabic ? "رابط المشاركة" : "Lien de partage"} readOnly value={newUrl} /><button className="text-link" type="button" onClick={() => void copyLink()}>{isArabic ? "نسخ" : "Copier"}</button></div>}
-    {error && <p className="form-message form-error" role="alert">{error}</p>}{message && <p className="form-message form-success" role="status">{message}</p>}
-    {shares.length > 0 && <div className="share-list">{shares.map((share) => {
-      const expired = new Date(share.expiresAt).getTime() <= Date.now();
-      const revoked = Boolean(share.revokedAt);
-      return <article className="revision-row" key={share.id}>
-        <span>{isArabic ? `النسخة ${share.revision}` : `Révision ${share.revision}`} · {share.permission === "copy" ? (isArabic ? "عرض ونسخ" : "Consulter et copier") : (isArabic ? "عرض فقط" : "Consultation seule")} · {revoked ? (isArabic ? "ملغى" : "Révoqué") : expired ? (isArabic ? "منتهي" : "Expiré") : (isArabic ? "نشط" : "Actif")} · {new Intl.DateTimeFormat(isArabic ? "ar-TN" : "fr-FR", { dateStyle: "medium" }).format(new Date(share.expiresAt))}</span>
-        {!revoked && !expired && <button className="text-link destructive" type="button" onClick={() => void revoke(share.id)}>{isArabic ? "إلغاء" : "Révoquer"}</button>}
-      </article>;
-    })}</div>}
+    <h2>{ar ? "مشاركة خاصة باسم المستلم" : "Partage privé nominatif"}</h2>
+    <p>{ar ? "الرابط وحده لا يكفي. يلزم تسجيل الدخول بالبريد المؤكد المحدد. العرض والنسخ والتعديل صلاحيات منفصلة؛ التعديل يتيح قراءة النص دون منح النسخ إلى حساب آخر." : "Le lien seul ne donne aucun accès : le destinataire doit utiliser le compte email vérifié désigné. Consultation, copie et modification sont distinctes ; modifier permet de lire le texte sans autoriser sa copie dans un autre compte."}</p>
+    <p className="form-hint">{ar ? "العرض والنسخ يستخدمان النسخة المشتركة. التعديل يضيف نسخة جديدة ولا يغير السجل. إذا تغيرت الوثيقة خارج هذه المشاركة، يُرفض التعديل حتى تنشئ مشاركة جديدة." : "Consultation et copie utilisent la révision partagée. Une modification ajoute une nouvelle révision sans altérer l’historique. Si le document change ailleurs, l’édition est bloquée jusqu’à la création d’un nouveau partage."}</p>
+    <form onSubmit={createShare}><fieldset disabled={disabled || busy}>
+      <legend>{ar ? `مشاركة النسخة ${revision}` : `Partager la révision ${revision}`}</legend>
+      <label className="profile-field">{ar ? "بريد المستلم" : "Email du destinataire"}<input type="email" required maxLength={320} autoComplete="off" value={recipientEmail} onChange={(event) => { setRecipientEmail(event.target.value); setNewUrl(""); }} /></label>
+      <label className="profile-field">{ar ? "تاريخ انتهاء الصلاحية (محلي)" : "Expiration (heure locale)"}<input type="datetime-local" required value={expiresAt} onChange={(event) => { setExpiresAt(event.target.value); setNewUrl(""); }} /></label>
+      <div>{(["view", "copy", "edit"] as const).map((right) => <label className="consent-check" key={right}><input type="checkbox" checked={permissions[right]} onChange={(event) => { setPermissions((current) => ({ ...current, [right]: event.target.checked })); setNewUrl(""); }} />{labels[right]}</label>)}</div>
+      <button className="button button-quiet" disabled={!permissions.view && !permissions.copy && !permissions.edit}>{busy ? (ar ? "جارٍ الإنشاء…" : "Création…") : (ar ? "إنشاء رابط مخصص" : "Créer un lien nominatif")}</button>
+    </fieldset></form>
+    {disabled && <p className="form-hint">{ar ? "احفظ التعديلات وحل التعارض قبل المشاركة." : "Enregistrez et résolvez les conflits avant de partager."}</p>}
+    {newUrl && <div className="share-link-box"><input aria-label={ar ? "رابط المشاركة" : "Lien de partage"} readOnly value={newUrl} /><button className="text-link" type="button" onClick={() => void copyLink()}>{ar ? "نسخ" : "Copier"}</button></div>}
+    {error && <p className="form-message form-error" role="alert">{error}</p>}{message && <p role="status">{message}</p>}
+    {shares.map((share) => {
+      const expired = new Date(share.expiresAt) <= new Date();
+      return <article className="revision-row" key={share.id}><div><p><bdi>{share.recipientEmail ?? (ar ? "رابط قديم غير مخصص (معطل)" : "Ancien lien sans destinataire (désactivé)")}</bdi> · {ar ? `النسخة ${share.revision}` : `Révision ${share.revision}`}</p><p>{share.permissions && Object.entries(share.permissions).filter(([, enabled]) => enabled).map(([right]) => labels[right as keyof Permissions]).join(" · ")} · {share.legacyDisabled ? (ar ? "معطل — أنشئ مشاركة جديدة" : "Désactivé — créez un nouveau partage") : share.revokedAt ? (ar ? "ملغى" : "Révoqué") : expired ? (ar ? "منتهي" : "Expiré") : (ar ? "نشط" : "Actif")} · {new Intl.DateTimeFormat(ar ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(share.expiresAt))}</p>{share.events.length > 0 && <details><summary>{ar ? "سجل النشاط" : "Historique d’accès"}</summary><ul>{share.events.map((event, index) => <li key={index}>{eventLabels[event.action] ?? event.action} · {event.revision} · {new Date(event.createdAt).toLocaleString(ar ? "ar-TN" : "fr-FR")}</li>)}</ul></details>}</div>{!share.revokedAt && !expired && <button className="text-link destructive" type="button" disabled={busy} onClick={() => void revoke(share.id)}>{ar ? "إلغاء" : "Révoquer"}</button>}</article>;
+    })}
   </section>;
 }

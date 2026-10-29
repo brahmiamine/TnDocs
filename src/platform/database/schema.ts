@@ -1,6 +1,7 @@
-import { index, int, json, mysqlEnum, mysqlTable, primaryKey, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, int, json, customType, mysqlEnum, mysqlTable, primaryKey, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
 
+const mediumtext = customType<{ data: string }>({ dataType() { return "mediumtext"; } });
 const id = (name: string) => varchar(name, { length: 36 });
 
 /** Initial platform table. Business modules own their tables in separate schema files. */
@@ -94,9 +95,9 @@ export const documentRevisions = mysqlTable("document_revisions", {
   id: id("id").primaryKey(),
   documentId: id("document_id").notNull().references(() => personalDocuments.id, { onDelete: "cascade" }),
   revision: int("revision").notNull(),
-  contentCiphertext: text("content_ciphertext").notNull(),
+  contentCiphertext: mediumtext("content_ciphertext").notNull(),
   encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
-  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdBy: id("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [uniqueIndex("document_revisions_document_revision_unique").on(table.documentId, table.revision), index("document_revisions_created_idx").on(table.documentId, table.createdAt)]);
 
@@ -174,7 +175,7 @@ export const catalogTemplates = mysqlTable("catalog_templates", {
   documentType: mysqlEnum("document_type", ["editable", "official", "informational"]).notNull(),
   organizationId: id("organization_id").references(() => catalogOrganizations.id, { onDelete: "set null" }),
   publishedVersionId: id("published_version_id"),
-  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdBy: id("created_by").references(() => users.id, { onDelete: "set null" }),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
@@ -187,7 +188,7 @@ export const catalogTemplateVersions = mysqlTable("catalog_template_versions", {
   status: mysqlEnum("status", ["draft", "in_review", "published", "archived"]).notNull().default("draft"),
   formSchema: json("form_schema"),
   documentContent: json("document_content"),
-  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdBy: id("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [uniqueIndex("catalog_template_versions_template_version_unique").on(table.templateId, table.version), index("catalog_template_versions_template_id_idx").on(table.templateId)]);
 
@@ -215,3 +216,27 @@ export const catalogTemplateSources = mysqlTable("catalog_template_sources", {
   checkedAt: timestamp("checked_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [index("catalog_template_sources_version_id_idx").on(table.versionId)]);
+
+export { jobs } from "../jobs/schema";
+export { userSecondFactors, recoveryCodes, sessionFactors, oauthIdentities, oauthFlows, identityAuditEvents, emailChangeChallenges } from "@/modules/identity/advanced-schema";
+export { signatureRequests, signatureParticipants, signatureEvents, signatureAssets } from "@/modules/signatures/db-schema";
+export { communitySubmissions, communitySubmissionEvents } from "@/modules/community/db-schema";
+
+export { privateTemplates, privateTemplateVersions, privateDocumentModels } from "@/modules/private-templates/db-schema";
+
+export { registeredSources, sourceObservations } from "@/modules/sources/db-schema";
+export { notifications, notificationPreferences, pushSubscriptions, notificationDeliveries } from "@/modules/notifications/db-schema";
+
+export { procedureGuides, procedureGuideVersions } from "@/modules/procedures/db-schema";
+export { trashMarkers } from "../retention/schema";
+
+export { recipientShareGrants, recipientShareEvents } from "@/modules/sharing/db-schema";
+
+export { documentStateMetadata } from "@/modules/document-state/db-schema";
+export { systemSettings, systemAuditEvents, legalVersions, legalPublications } from "@/modules/administration/db-schema";
+
+export { dossierProcedureRefs, dossierProcedureItems, dossierShareGrants, dossierShareEvents } from "@/modules/dossiers/db-schema";
+
+export { artifactReservations } from "../jobs/artifacts-schema";
+
+export { searchConfiguration, searchDailyMetrics } from "@/modules/search/db-schema";

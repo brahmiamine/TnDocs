@@ -137,7 +137,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <div className="container"><div className="cta-panel"><div><h2>{t.ctaTitle}</h2><p>{t.ctaText}</p></div><Link className="button" href={`/${locale}/catalogue`}>{t.cta}<span aria-hidden="true">→</span></Link></div></div>
       </section>
 
-      <footer className="footer"><div className="container footer-inner"><span>© {new Date().getFullYear()} TnDocs · {t.footer}</span><div className="footer-links">{t.footerLinks.map((item) => <a href="#" key={item}>{item}</a>)}</div></div></footer>
+      <footer className="footer"><div className="container footer-inner"><span>© {new Date().getFullYear()} TnDocs · {t.footer}</span><div className="footer-links">{t.footerLinks.map((item,index) => <Link href={index===0?`/${locale}/informations/confidentialite`:`/${locale}/contact`} key={item}>{item}</Link>)}</div></div></footer>
     </main>
   );
 }

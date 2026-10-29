@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
-import { getPublicTemplates } from "@/modules/catalog/public";
-
+import { getPublicTemplatePage } from "@/modules/catalog/public";
+import { publicSearchRequest } from "@/modules/search/request";
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const localeValue = url.searchParams.get("locale") ?? "fr";
-  const query = url.searchParams.get("q")?.trim();
-  const category = url.searchParams.get("category")?.trim();
-  if (localeValue !== "fr" && localeValue !== "ar") return NextResponse.json({ code: "INVALID_LOCALE", message: "Locale must be fr or ar." }, { status: 400 });
-  if (query && query.length > 120) return NextResponse.json({ code: "INVALID_QUERY", message: "Search query is too long." }, { status: 400 });
-  if (category && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(category)) return NextResponse.json({ code: "INVALID_CATEGORY", message: "Category slug is invalid." }, { status: 400 });
-  const templates = await getPublicTemplates(localeValue, { query, category, limit: 50 });
-  return NextResponse.json({ templates }, { headers: { "Cache-Control": "no-store" } });
+  const input = publicSearchRequest(new URL(request.url));
+  if (!input.success) return NextResponse.json({ code: "INVALID_SEARCH", fields: input.error.flatten().fieldErrors }, { status: 400 });
+  const { locale, q, mode, ...options } = input.data;
+  try { return NextResponse.json(await getPublicTemplatePage(locale, { ...options, query: q, forceDatabaseSearch: mode === "simple" }), { headers: { "Cache-Control": "no-store" } }); }
+  catch { return NextResponse.json({ code: "SEARCH_UNAVAILABLE" }, { status: 503 }); }
 }

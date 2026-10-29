@@ -28,15 +28,17 @@ export async function POST(request: Request) {
   if (user?.status === "active") {
     const challenge = createSecretToken();
     try {
-      await database.update(verificationChallenges).set({ usedAt: new Date() }).where(and(
+      await database.transaction(async tx => {
+      await tx.update(verificationChallenges).set({ usedAt: new Date() }).where(and(
         eq(verificationChallenges.userId, user.id), eq(verificationChallenges.purpose, "password_reset"),
         isNull(verificationChallenges.usedAt),
       ));
-      await database.insert(verificationChallenges).values({
+      await tx.insert(verificationChallenges).values({
         id: randomUUID(), userId: user.id, purpose: "password_reset", tokenHash: challenge.hash,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       });
-      await sendPasswordResetEmail(user.email, challenge.token, user.preferredLocale);
+      await sendPasswordResetEmail(user.email, challenge.token, user.preferredLocale, user.id, tx);
+      });
     } catch {
       // The response stays generic; never reveal account state or email contents in logs.
       await database.update(verificationChallenges).set({ usedAt: new Date() }).where(eq(verificationChallenges.tokenHash, challenge.hash));

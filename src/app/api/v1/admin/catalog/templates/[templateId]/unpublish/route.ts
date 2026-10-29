@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { enqueueJob } from "@/platform/jobs/queue";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
@@ -13,9 +15,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
   if (!user) return NextResponse.json({ code: reason === "unauthenticated" ? "UNAUTHENTICATED" : "FORBIDDEN", message: "Administrator access is required." }, { status: reason === "unauthenticated" ? 401 : 403 });
   if (!database) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Catalog service is not configured." }, { status: 503 });
   const { templateId } = await params;
-  const updated = await database.update(catalogTemplates).set({ status: "archived", publishedVersionId: null, publishedAt: null }).where(and(
+  const updated = await database.transaction(async (tx) => {
+  const updated = await tx.update(catalogTemplates).set({ status: "archived", publishedVersionId: null, publishedAt: null }).where(and(
     eq(catalogTemplates.id, templateId), eq(catalogTemplates.status, "published"),
   ));
+  if (updated[0].affectedRows) await enqueueJob({ kind: "catalog.sync", key: `catalog:${templateId}:${randomUUID()}`, payload: { templateId } }, tx);
+  return updated;
+  });
   if (!updated[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND", message: "Published template not found." }, { status: 404 });
   let searchIndexSynced = false;
   try { searchIndexSynced = await removeTemplateFromSearch(templateId); } catch { searchIndexSynced = false; }

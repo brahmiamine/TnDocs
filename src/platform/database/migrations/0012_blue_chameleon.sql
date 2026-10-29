@@ -1,0 +1,1 @@
+ALTER TABLE `system_audit_events` MODIFY COLUMN `action` enum('settings_changed','legal_created','legal_reviewed','legal_published','user_changed','category_created','category_updated','organization_created','organization_updated') NOT NULL;

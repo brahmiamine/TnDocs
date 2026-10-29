@@ -1,0 +1,3837 @@
+openapi: 3.1.0
+info:
+  title: TnDocs API
+  version: 0.2.0
+  description: API réalisée; les corps exacts sont validés par les schémas TypeScript
+    référencés dans chaque route.
+servers:
+- url: /
+paths:
+  /api/health:
+    get:
+      summary: GET /api/health
+      x-source: src/app/api/health/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/admin/catalog/reindex:
+    post:
+      summary: POST /api/v1/admin/catalog/reindex
+      x-source: src/app/api/v1/admin/catalog/reindex/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/catalog/templates:
+    get:
+      summary: GET /api/v1/admin/catalog/templates
+      x-source: src/app/api/v1/admin/catalog/templates/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/admin/catalog/templates
+      x-source: src/app/api/v1/admin/catalog/templates/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/catalog/templates/{templateId}/publish:
+    post:
+      summary: POST /api/v1/admin/catalog/templates/{templateId}/publish
+      x-source: src/app/api/v1/admin/catalog/templates/[templateId]/publish/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/catalog/templates/{templateId}/review:
+    post:
+      summary: POST /api/v1/admin/catalog/templates/{templateId}/review
+      x-source: src/app/api/v1/admin/catalog/templates/[templateId]/review/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/catalog/templates/{templateId}/unpublish:
+    post:
+      summary: POST /api/v1/admin/catalog/templates/{templateId}/unpublish
+      x-source: src/app/api/v1/admin/catalog/templates/[templateId]/unpublish/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/catalog/templates/{templateId}/versions:
+    post:
+      summary: POST /api/v1/admin/catalog/templates/{templateId}/versions
+      x-source: src/app/api/v1/admin/catalog/templates/[templateId]/versions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/moderation:
+    get:
+      summary: GET /api/v1/admin/moderation
+      x-source: src/app/api/v1/admin/moderation/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/moderation/{submissionId}:
+    patch:
+      summary: PATCH /api/v1/admin/moderation/{submissionId}
+      x-source: src/app/api/v1/admin/moderation/[submissionId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: submissionId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/search:
+    get:
+      summary: GET /api/v1/admin/search
+      x-source: src/app/api/v1/admin/search/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    put:
+      summary: PUT /api/v1/admin/search
+      x-source: src/app/api/v1/admin/search/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/sources:
+    get:
+      summary: GET /api/v1/admin/sources
+      x-source: src/app/api/v1/admin/sources/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/admin/sources
+      x-source: src/app/api/v1/admin/sources/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/sources/observations/{observationId}:
+    patch:
+      summary: PATCH /api/v1/admin/sources/observations/{observationId}
+      x-source: src/app/api/v1/admin/sources/observations/[observationId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: observationId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/sources/observations/{observationId}/original:
+    get:
+      summary: GET /api/v1/admin/sources/observations/{observationId}/original
+      x-source: src/app/api/v1/admin/sources/observations/[observationId]/original/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: observationId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/sources/procedures:
+    get:
+      summary: GET /api/v1/admin/sources/procedures
+      x-source: src/app/api/v1/admin/sources/procedures/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/admin/sources/procedures
+      x-source: src/app/api/v1/admin/sources/procedures/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/sources/procedures/{guideId}:
+    delete:
+      summary: DELETE /api/v1/admin/sources/procedures/{guideId}
+      x-source: src/app/api/v1/admin/sources/procedures/[guideId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: guideId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/sources/{sourceId}:
+    get:
+      summary: GET /api/v1/admin/sources/{sourceId}
+      x-source: src/app/api/v1/admin/sources/[sourceId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: sourceId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    patch:
+      summary: PATCH /api/v1/admin/sources/{sourceId}
+      x-source: src/app/api/v1/admin/sources/[sourceId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: sourceId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/sources/{sourceId}/import:
+    post:
+      summary: POST /api/v1/admin/sources/{sourceId}/import
+      x-source: src/app/api/v1/admin/sources/[sourceId]/import/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: sourceId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/sources/{sourceId}/observe:
+    post:
+      summary: POST /api/v1/admin/sources/{sourceId}/observe
+      x-source: src/app/api/v1/admin/sources/[sourceId]/observe/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: sourceId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/admin/systeme:
+    get:
+      summary: GET /api/v1/admin/systeme
+      x-source: src/app/api/v1/admin/systeme/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    put:
+      summary: PUT /api/v1/admin/systeme
+      x-source: src/app/api/v1/admin/systeme/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/systeme/legal:
+    post:
+      summary: POST /api/v1/admin/systeme/legal
+      x-source: src/app/api/v1/admin/systeme/legal/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/admin/systeme/legal/{versionId}:
+    patch:
+      summary: PATCH /api/v1/admin/systeme/legal/{versionId}
+      x-source: src/app/api/v1/admin/systeme/legal/[versionId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: versionId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/auth/change-email:
+    post:
+      summary: POST /api/v1/auth/change-email
+      x-source: src/app/api/v1/auth/change-email/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/change-email/confirm:
+    post:
+      summary: POST /api/v1/auth/change-email/confirm
+      x-source: src/app/api/v1/auth/change-email/confirm/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/forgot-password:
+    post:
+      summary: POST /api/v1/auth/forgot-password
+      x-source: src/app/api/v1/auth/forgot-password/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/google:
+    post:
+      summary: POST /api/v1/auth/google
+      x-source: src/app/api/v1/auth/google/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/google/callback:
+    get:
+      summary: GET /api/v1/auth/google/callback
+      x-source: src/app/api/v1/auth/google/callback/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/login:
+    post:
+      summary: POST /api/v1/auth/login
+      x-source: src/app/api/v1/auth/login/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/logout:
+    post:
+      summary: POST /api/v1/auth/logout
+      x-source: src/app/api/v1/auth/logout/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/magic-link:
+    post:
+      summary: POST /api/v1/auth/magic-link
+      x-source: src/app/api/v1/auth/magic-link/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/magic-link/consume:
+    post:
+      summary: POST /api/v1/auth/magic-link/consume
+      x-source: src/app/api/v1/auth/magic-link/consume/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/mfa/disable:
+    post:
+      summary: POST /api/v1/auth/mfa/disable
+      x-source: src/app/api/v1/auth/mfa/disable/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/mfa/enroll:
+    post:
+      summary: POST /api/v1/auth/mfa/enroll
+      x-source: src/app/api/v1/auth/mfa/enroll/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/mfa/verify:
+    post:
+      summary: POST /api/v1/auth/mfa/verify
+      x-source: src/app/api/v1/auth/mfa/verify/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/register:
+    post:
+      summary: POST /api/v1/auth/register
+      x-source: src/app/api/v1/auth/register/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/resend-verification:
+    post:
+      summary: POST /api/v1/auth/resend-verification
+      x-source: src/app/api/v1/auth/resend-verification/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/reset-password:
+    post:
+      summary: POST /api/v1/auth/reset-password
+      x-source: src/app/api/v1/auth/reset-password/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/auth/verify-email:
+    post:
+      summary: POST /api/v1/auth/verify-email
+      x-source: src/app/api/v1/auth/verify-email/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/catalog/categories:
+    get:
+      summary: GET /api/v1/catalog/categories
+      x-source: src/app/api/v1/catalog/categories/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/catalog/templates:
+    get:
+      summary: GET /api/v1/catalog/templates
+      x-source: src/app/api/v1/catalog/templates/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/catalog/templates/{templateId}:
+    get:
+      summary: GET /api/v1/catalog/templates/{templateId}
+      x-source: src/app/api/v1/catalog/templates/[templateId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+  /api/v1/contact:
+    get:
+      summary: GET /api/v1/contact
+      x-source: src/app/api/v1/contact/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+    post:
+      summary: POST /api/v1/contact
+      x-source: src/app/api/v1/contact/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/dossier-shares/access:
+    post:
+      summary: POST /api/v1/dossier-shares/access
+      x-source: src/app/api/v1/dossier-shares/access/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/dossier-shares/export:
+    post:
+      summary: POST /api/v1/dossier-shares/export
+      x-source: src/app/api/v1/dossier-shares/export/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/dossier-shares/items/{itemId}/attachment:
+    post:
+      summary: POST /api/v1/dossier-shares/items/{itemId}/attachment
+      x-source: src/app/api/v1/dossier-shares/items/[itemId]/attachment/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+  /api/v1/me:
+    get:
+      summary: GET /api/v1/me
+      x-source: src/app/api/v1/me/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/contributions:
+    get:
+      summary: GET /api/v1/me/contributions
+      x-source: src/app/api/v1/me/contributions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/contributions
+      x-source: src/app/api/v1/me/contributions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/contributions/{submissionId}:
+    patch:
+      summary: PATCH /api/v1/me/contributions/{submissionId}
+      x-source: src/app/api/v1/me/contributions/[submissionId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: submissionId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/data-export:
+    get:
+      summary: GET /api/v1/me/data-export
+      x-source: src/app/api/v1/me/data-export/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/delete-account:
+    post:
+      summary: POST /api/v1/me/delete-account
+      x-source: src/app/api/v1/me/delete-account/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/documents:
+    get:
+      summary: GET /api/v1/me/documents
+      x-source: src/app/api/v1/me/documents/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/documents
+      x-source: src/app/api/v1/me/documents/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/documents/state:
+    get:
+      summary: GET /api/v1/me/documents/state
+      x-source: src/app/api/v1/me/documents/state/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}
+      x-source: src/app/api/v1/me/documents/[documentId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/documents/{documentId}
+      x-source: src/app/api/v1/me/documents/[documentId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    patch:
+      summary: PATCH /api/v1/me/documents/{documentId}
+      x-source: src/app/api/v1/me/documents/[documentId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/duplicate:
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/duplicate
+      x-source: src/app/api/v1/me/documents/[documentId]/duplicate/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/exports:
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/exports
+      x-source: src/app/api/v1/me/documents/[documentId]/exports/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/exports/docx:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/exports/docx
+      x-source: src/app/api/v1/me/documents/[documentId]/exports/docx/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/revisions:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/revisions
+      x-source: src/app/api/v1/me/documents/[documentId]/revisions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/revisions
+      x-source: src/app/api/v1/me/documents/[documentId]/revisions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/revisions/restore:
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/revisions/restore
+      x-source: src/app/api/v1/me/documents/[documentId]/revisions/restore/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/revisions/{revision}:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/revisions/{revision}
+      x-source: src/app/api/v1/me/documents/[documentId]/revisions/[revision]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: revision
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/shares:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/shares
+      x-source: src/app/api/v1/me/documents/[documentId]/shares/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/shares
+      x-source: src/app/api/v1/me/documents/[documentId]/shares/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/shares/{shareId}:
+    delete:
+      summary: DELETE /api/v1/me/documents/{documentId}/shares/{shareId}
+      x-source: src/app/api/v1/me/documents/[documentId]/shares/[shareId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: shareId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/sign-requests:
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/sign-requests
+      x-source: src/app/api/v1/me/documents/[documentId]/sign-requests/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/sign-requests
+      x-source: src/app/api/v1/me/documents/[documentId]/sign-requests/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/sign-requests/{requestId}:
+    delete:
+      summary: DELETE /api/v1/me/documents/{documentId}/sign-requests/{requestId}
+      x-source: src/app/api/v1/me/documents/[documentId]/sign-requests/[requestId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: requestId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/sign-requests/{requestId}/exports:
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/sign-requests/{requestId}/exports
+      x-source: src/app/api/v1/me/documents/[documentId]/sign-requests/[requestId]/exports/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: requestId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/documents/{documentId}/state:
+    post:
+      summary: POST /api/v1/me/documents/{documentId}/state
+      x-source: src/app/api/v1/me/documents/[documentId]/state/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    get:
+      summary: GET /api/v1/me/documents/{documentId}/state
+      x-source: src/app/api/v1/me/documents/[documentId]/state/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: documentId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers:
+    get:
+      summary: GET /api/v1/me/dossiers
+      x-source: src/app/api/v1/me/dossiers/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/dossiers
+      x-source: src/app/api/v1/me/dossiers/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/dossiers/from-procedure:
+    post:
+      summary: POST /api/v1/me/dossiers/from-procedure
+      x-source: src/app/api/v1/me/dossiers/from-procedure/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}:
+    get:
+      summary: GET /api/v1/me/dossiers/{dossierId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/dossiers/{dossierId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    patch:
+      summary: PATCH /api/v1/me/dossiers/{dossierId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/exports:
+    post:
+      summary: POST /api/v1/me/dossiers/{dossierId}/exports
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/exports/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/exports/photo:
+    post:
+      summary: POST /api/v1/me/dossiers/{dossierId}/exports/photo
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/exports/photo/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/items:
+    post:
+      summary: POST /api/v1/me/dossiers/{dossierId}/items
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/items/{itemId}:
+    patch:
+      summary: PATCH /api/v1/me/dossiers/{dossierId}/items/{itemId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/[itemId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/dossiers/{dossierId}/items/{itemId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/[itemId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/items/{itemId}/attachment:
+    post:
+      summary: POST /api/v1/me/dossiers/{dossierId}/items/{itemId}/attachment
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/[itemId]/attachment/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    get:
+      summary: GET /api/v1/me/dossiers/{dossierId}/items/{itemId}/attachment
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/[itemId]/attachment/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/dossiers/{dossierId}/items/{itemId}/attachment
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/items/[itemId]/attachment/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/shares:
+    get:
+      summary: GET /api/v1/me/dossiers/{dossierId}/shares
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/shares/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/dossiers/{dossierId}/shares
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/shares/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/dossiers/{dossierId}/shares/{shareId}:
+    delete:
+      summary: DELETE /api/v1/me/dossiers/{dossierId}/shares/{shareId}
+      x-source: src/app/api/v1/me/dossiers/[dossierId]/shares/[shareId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: dossierId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: shareId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/exports/{jobId}:
+    get:
+      summary: GET /api/v1/me/exports/{jobId}
+      x-source: src/app/api/v1/me/exports/[jobId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: jobId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/exports/{jobId}/download:
+    get:
+      summary: GET /api/v1/me/exports/{jobId}/download
+      x-source: src/app/api/v1/me/exports/[jobId]/download/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: jobId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/notifications:
+    get:
+      summary: GET /api/v1/me/notifications
+      x-source: src/app/api/v1/me/notifications/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/notifications/preferences:
+    put:
+      summary: PUT /api/v1/me/notifications/preferences
+      x-source: src/app/api/v1/me/notifications/preferences/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/notifications/push:
+    get:
+      summary: GET /api/v1/me/notifications/push
+      x-source: src/app/api/v1/me/notifications/push/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/notifications/push
+      x-source: src/app/api/v1/me/notifications/push/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/notifications/push
+      x-source: src/app/api/v1/me/notifications/push/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/notifications/{notificationId}:
+    patch:
+      summary: PATCH /api/v1/me/notifications/{notificationId}
+      x-source: src/app/api/v1/me/notifications/[notificationId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: notificationId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/profiles:
+    get:
+      summary: GET /api/v1/me/profiles
+      x-source: src/app/api/v1/me/profiles/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/profiles
+      x-source: src/app/api/v1/me/profiles/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/profiles/{profileId}:
+    patch:
+      summary: PATCH /api/v1/me/profiles/{profileId}
+      x-source: src/app/api/v1/me/profiles/[profileId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: profileId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/profiles/{profileId}
+      x-source: src/app/api/v1/me/profiles/[profileId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: profileId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/sessions:
+    get:
+      summary: GET /api/v1/me/sessions
+      x-source: src/app/api/v1/me/sessions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/sessions/{sessionId}:
+    delete:
+      summary: DELETE /api/v1/me/sessions/{sessionId}
+      x-source: src/app/api/v1/me/sessions/[sessionId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/signature-assets:
+    get:
+      summary: GET /api/v1/me/signature-assets
+      x-source: src/app/api/v1/me/signature-assets/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/signature-assets
+      x-source: src/app/api/v1/me/signature-assets/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/signature-assets/{assetId}:
+    delete:
+      summary: DELETE /api/v1/me/signature-assets/{assetId}
+      x-source: src/app/api/v1/me/signature-assets/[assetId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: assetId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/templates:
+    get:
+      summary: GET /api/v1/me/templates
+      x-source: src/app/api/v1/me/templates/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+    post:
+      summary: POST /api/v1/me/templates
+      x-source: src/app/api/v1/me/templates/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/templates/source:
+    get:
+      summary: GET /api/v1/me/templates/source
+      x-source: src/app/api/v1/me/templates/source/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      security:
+      - session: []
+  /api/v1/me/templates/{templateId}:
+    get:
+      summary: GET /api/v1/me/templates/{templateId}
+      x-source: src/app/api/v1/me/templates/[templateId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    patch:
+      summary: PATCH /api/v1/me/templates/{templateId}
+      x-source: src/app/api/v1/me/templates/[templateId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+    delete:
+      summary: DELETE /api/v1/me/templates/{templateId}
+      x-source: src/app/api/v1/me/templates/[templateId]/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/templates/{templateId}/instantiate:
+    post:
+      summary: POST /api/v1/me/templates/{templateId}/instantiate
+      x-source: src/app/api/v1/me/templates/[templateId]/instantiate/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/me/templates/{templateId}/versions:
+    get:
+      summary: GET /api/v1/me/templates/{templateId}/versions
+      x-source: src/app/api/v1/me/templates/[templateId]/versions/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+      parameters:
+      - in: path
+        name: templateId
+        required: true
+        schema:
+          type: string
+      security:
+      - session: []
+  /api/v1/procedures:
+    get:
+      summary: GET /api/v1/procedures
+      x-source: src/app/api/v1/procedures/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/search/suggest:
+    get:
+      summary: GET /api/v1/search/suggest
+      x-source: src/app/api/v1/search/suggest/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/shares/access:
+    post:
+      summary: POST /api/v1/shares/access
+      x-source: src/app/api/v1/shares/access/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/shares/copy:
+    post:
+      summary: POST /api/v1/shares/copy
+      x-source: src/app/api/v1/shares/copy/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/shares/edit:
+    post:
+      summary: POST /api/v1/shares/edit
+      x-source: src/app/api/v1/shares/edit/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/sign-invitations/access:
+    get:
+      summary: GET /api/v1/sign-invitations/access
+      x-source: src/app/api/v1/sign-invitations/access/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/sign-invitations/decision:
+    post:
+      summary: POST /api/v1/sign-invitations/decision
+      x-source: src/app/api/v1/sign-invitations/decision/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/sign-invitations/request-verification:
+    post:
+      summary: POST /api/v1/sign-invitations/request-verification
+      x-source: src/app/api/v1/sign-invitations/request-verification/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/sign-invitations/verify:
+    post:
+      summary: POST /api/v1/sign-invitations/verify
+      x-source: src/app/api/v1/sign-invitations/verify/route.ts
+      responses:
+        '200':
+          description: Résultat autorisé; création ou traitement peut renvoyer 201
+            ou 202.
+        '400':
+          description: Payload non conforme.
+        '401':
+          description: Authentification requise.
+        '403':
+          description: Rôle, origine ou permission refusés.
+        '404':
+          description: Ressource absente ou hors portée.
+        '409':
+          description: Conflit de révision, état ou validation.
+        '413':
+          description: Taille ou quota dépassé.
+        '429':
+          description: Limitation temporaire.
+        '503':
+          description: Service externe indisponible ou non configuré.
+  /api/v1/admin/users:
+    get:
+      summary: GET /api/v1/admin/users
+      x-source: src/app/api/v1/admin/users/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+  /api/v1/admin/catalog/organizations:
+    get:
+      summary: GET /api/v1/admin/catalog/organizations
+      x-source: src/app/api/v1/admin/catalog/organizations/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+    post:
+      summary: POST /api/v1/admin/catalog/organizations
+      x-source: src/app/api/v1/admin/catalog/organizations/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+    patch:
+      summary: PATCH /api/v1/admin/catalog/organizations
+      x-source: src/app/api/v1/admin/catalog/organizations/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+  /api/v1/admin/catalog/categories:
+    get:
+      summary: GET /api/v1/admin/catalog/categories
+      x-source: src/app/api/v1/admin/catalog/categories/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+    post:
+      summary: POST /api/v1/admin/catalog/categories
+      x-source: src/app/api/v1/admin/catalog/categories/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+    patch:
+      summary: PATCH /api/v1/admin/catalog/categories
+      x-source: src/app/api/v1/admin/catalog/categories/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+  /api/v1/admin/users/{userId}:
+    patch:
+      summary: PATCH /api/v1/admin/users/{userId}
+      x-source: src/app/api/v1/admin/users/[userId]/route.ts
+      security:
+      - session: []
+      responses:
+        '200':
+          description: Résultat autorisé.
+        '400':
+          description: Payload non conforme.
+        '403':
+          description: Autorisation ou origine refusée.
+        '409':
+          description: Conflit de révision ou état.
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: __Host-tndocs_session
+      description: Cookie HttpOnly Secure SameSite Strict en production; tndocs_session
+        en développement. Les commandes exigent aussi Origin APP_URL.

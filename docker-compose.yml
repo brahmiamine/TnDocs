@@ -1,5 +1,4 @@
 name: tndocs
-
 services:
   web:
     build:
@@ -7,20 +6,22 @@ services:
       target: dependencies
     command: npm run dev -- --hostname 0.0.0.0
     env_file:
-      - .env
+    - .env
     environment:
       DATABASE_URL: mysql://tndocs:tndocs_dev_only@mariadb:3306/tndocs
       MEILISEARCH_URL: http://meilisearch:7700
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
-      SMTP_SECURE: "false"
+      SMTP_SECURE: 'false'
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
+      STORAGE_ROOT: /app/.data/storage
     ports:
-      - "127.0.0.1:3000:3000"
+    - 127.0.0.1:3000:3000
     volumes:
-      - .:/app
-      - node_modules:/app/node_modules
+    - .:/app
+    - node_modules:/app/node_modules
+    - ./.data/storage:/app/.data/storage
     depends_on:
       mariadb:
         condition: service_healthy
@@ -30,7 +31,6 @@ services:
         condition: service_started
       clamav:
         condition: service_started
-
   mariadb:
     image: mariadb:11.4
     environment:
@@ -39,50 +39,80 @@ services:
       MARIADB_PASSWORD: tndocs_dev_only
       MARIADB_ROOT_PASSWORD: root_dev_only
     ports:
-      - "127.0.0.1:3306:3306"
+    - 127.0.0.1:3306:3306
     volumes:
-      - mariadb_data:/var/lib/mysql
+    - mariadb_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test:
+      - CMD
+      - healthcheck.sh
+      - --connect
+      - --innodb_initialized
       interval: 5s
       timeout: 3s
       retries: 12
-
   meilisearch:
     image: getmeili/meilisearch:v1.12
     environment:
       MEILI_ENV: development
       MEILI_MASTER_KEY: dev_only_change_before_deployment
+      MEILI_NO_ANALYTICS: 'true'
     ports:
-      - "127.0.0.1:7700:7700"
+    - 127.0.0.1:7700:7700
     volumes:
-      - meilisearch_data:/meili_data
-
+    - meilisearch_data:/meili_data
   mailpit:
     image: axllent/mailpit:v1.27
     ports:
-      - "127.0.0.1:8025:8025"
-      - "127.0.0.1:1025:1025"
-
+    - 127.0.0.1:8025:8025
+    - 127.0.0.1:1025:1025
   clamav:
     image: clamav/clamav:1.4.3
     ports:
-      - "127.0.0.1:3310:3310"
+    - 127.0.0.1:3310:3310
     volumes:
-      - clamav_data:/var/lib/clamav
-
+    - clamav_data:/var/lib/clamav
   caddy:
     image: caddy:2-alpine
-    profiles: ["staging"]
+    profiles:
+    - staging
     ports:
-      - "127.0.0.1:8080:80"
+    - 127.0.0.1:8080:80
     volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
-      - web
-
+    - web
+  worker:
+    build:
+      context: .
+      target: worker
+    user: 0:0
+    command: npm run worker
+    env_file:
+    - .env
+    environment:
+      DATABASE_URL: mysql://tndocs:tndocs_dev_only@mariadb:3306/tndocs
+      MEILISEARCH_URL: http://meilisearch:7700
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: 'false'
+      STORAGE_ROOT: /app/.data/storage
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+    volumes:
+    - ./.data/storage:/app/.data/storage
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
 volumes:
-  mariadb_data:
-  meilisearch_data:
-  clamav_data:
-  node_modules:
+  mariadb_data: null
+  meilisearch_data: null
+  clamav_data: null
+  node_modules: null

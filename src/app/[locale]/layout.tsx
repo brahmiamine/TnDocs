@@ -1,3 +1,5 @@
+import {AuthReturn} from "@/modules/identity/AuthReturn";
+import { AppNavigation } from "@/modules/navigation/AppNavigation";
 import { notFound } from "next/navigation";
 import { ServiceWorkerRegistration } from "@/modules/pwa/ServiceWorkerRegistration";
 import "../globals.css";
@@ -16,7 +18,9 @@ export default async function LocaleLayout({
   return (
     <div lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} className={locale === "ar" ? "arabic" : undefined}>
       <ServiceWorkerRegistration />
+      <AuthReturn locale={locale} />
       {children}
+      <AppNavigation locale={locale} />
     </div>
   );
 }

@@ -8,5 +8,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ temp
   const { templateId } = await params;
   const template = await getPublicTemplate(templateId, localeValue);
   if (!template) return NextResponse.json({ code: "NOT_FOUND", message: "Published template not found." }, { status: 404 });
-  return NextResponse.json({ template }, { headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=120" } });
+  return NextResponse.json({ template }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -1,3 +1,4 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -36,6 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
     const content = { ...restored, title };
     const encrypted = encryptDocumentData(content, user.id, documentId, nextRevision);
     const saved = await db.transaction(async (tx) => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
       const changed = await tx.update(personalDocuments).set({ title, currentRevision: nextRevision }).where(and(
         eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id),
         eq(personalDocuments.currentRevision, expectedRevision), eq(personalDocuments.status, "draft"),
@@ -49,7 +51,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
     });
     if (!saved) return NextResponse.json({ code: "REVISION_CONFLICT", message: "The document changed while the restore was being processed." }, { status: 409 });
     return NextResponse.json({ revision: nextRevision, content }, { headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED", message: "The account storage quota is reached." }, { status: 413 });
     return NextResponse.json({ code: "RESTORE_UNAVAILABLE", message: "The selected revision could not be restored." }, { status: 503 });
   }
 }

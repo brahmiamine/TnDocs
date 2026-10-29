@@ -1,3 +1,4 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -49,12 +50,21 @@ export async function POST(request: Request) {
   try {
     const encrypted = encryptProfileData(parsed.data.data, user.id, id);
     const basis = parsed.data.relationship === "self" ? "self" : parsed.data.authorizationBasis!;
-    await db.insert(personProfiles).values({
-      id, ownerUserId: user.id, relationship: parsed.data.relationship, authorizationBasis: basis,
-      authorizationConfirmedAt: new Date(), dataCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion,
+    await db.transaction(async (tx) => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
+      if (parsed.data.relationship === "self") {
+        const [primary] = await tx.select({ id: personProfiles.id }).from(personProfiles).where(and(eq(personProfiles.ownerUserId, user.id), eq(personProfiles.relationship, "self"))).limit(1);
+        if (primary) throw new Error("PRIMARY_PROFILE_EXISTS");
+      }
+      await tx.insert(personProfiles).values({
+        id, ownerUserId: user.id, relationship: parsed.data.relationship, authorizationBasis: basis,
+        authorizationConfirmedAt: new Date(), dataCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion,
+      });
     });
     return NextResponse.json({ id, relationship: parsed.data.relationship, data: parsed.data.data }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED" }, { status: 413 });
+    if (error instanceof Error && error.message === "PRIMARY_PROFILE_EXISTS") return NextResponse.json({ code: "PRIMARY_PROFILE_EXISTS" }, { status: 409 });
     return NextResponse.json({ code: "PROFILE_UNAVAILABLE", message: "Profile data could not be stored. Check the encryption configuration." }, { status: 503 });
   }
 }

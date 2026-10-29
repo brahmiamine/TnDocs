@@ -1,21 +1,12 @@
 "use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-export function CreateDocumentButton({ templateId, locale }: { templateId: string; locale: string }) {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function create() {
-    setBusy(true); setError("");
-    try {
-      const response = await fetch("/api/v1/me/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ templateId, locale }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message ?? (locale === "ar" ? "تعذر إنشاء المسودة." : "Impossible de créer le brouillon."));
-      router.push(`/${locale}/mes-documents/${result.id}`);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Erreur"); }
-    finally { setBusy(false); }
-  }
-  return <div className="document-create-action"><button className="button" type="button" onClick={() => void create()} disabled={busy}>{busy ? (locale === "ar" ? "جارٍ الإنشاء…" : "Création…") : (locale === "ar" ? "إنشاء مسودتي" : "Créer mon brouillon")}</button>{error && <p className="form-message form-error" role="alert">{error} <a href={`/${locale}/connexion`}>{locale === "ar" ? "تسجيل الدخول" : "Se connecter"}</a></p>}</div>;
+import {useState} from "react";
+import {useRouter} from "next/navigation";
+export function CreateDocumentButton({templateId,locale,contentLocale,availableLocales}:{templateId:string;locale:string;contentLocale?:"fr"|"ar";availableLocales?:Array<"fr"|"ar">}){
+ const router=useRouter();const ar=locale==="ar";const [error,setError]=useState("");const [busy,setBusy]=useState(false);const [mode,setMode]=useState<"fr"|"ar"|"bilingual">(contentLocale??(ar?"ar":"fr"));const [needsLogin,setNeedsLogin]=useState(false);
+ async function create(){setBusy(true);setError("");setNeedsLogin(false);try{
+  const response=await fetch("/api/v1/me/documents",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({templateId,locale:mode==="bilingual"?locale:mode,bilingual:mode==="bilingual"})});const result=await response.json();
+  if(!response.ok){setNeedsLogin(response.status===401);throw new Error(result.code==="LOCALE_UNAVAILABLE"?(ar?"اللغة المختارة غير متوفرة. لإنشاء وثيقة ثنائية اللغة يجب نشر نصّين معتمدين بالفرنسية والعربية لنفس النسخة.":"La langue demandée est indisponible. Un document bilingue nécessite les textes français et arabe publiés dans la même version."):result.code==="TEMPLATE_SCHEMA_INVALID"?(ar?"حقول النسختين اللغويتين غير متوافقة مع النموذج المنشور.":"Les champs des deux traductions ne correspondent pas au formulaire publié."):(ar?"تعذر إنشاء المسودة.":"Impossible de créer le brouillon."));}
+  router.push(`/${locale}/mes-documents/${result.id}`);
+ }catch(reason){setError(reason instanceof Error?reason.message:(ar?"حدث خطأ.":"Une erreur est survenue."));}finally{setBusy(false);}}
+ return <div className="document-create-action"><label>{ar?"لغة الوثيقة":"Langue du document"}<select value={mode} disabled={busy} onChange={event=>setMode(event.target.value as "fr"|"ar"|"bilingual")}><option value="fr" disabled={availableLocales!==undefined&&!availableLocales.includes("fr")}>Français</option><option value="ar" disabled={availableLocales!==undefined&&!availableLocales.includes("ar")}>العربية</option><option value="bilingual" disabled={availableLocales!==undefined&&(!availableLocales.includes("fr")||!availableLocales.includes("ar"))}>Français + العربية</option></select></label><p className="form-hint">{ar?"تُستخدم الترجمات المنشورة فقط. لا تُنشأ ترجمة غير متوفرة.":"Seules les traductions publiées sont utilisées. Une traduction absente n’est jamais inventée."}</p><button className="button" type="button" disabled={busy} onClick={()=>void create()}>{busy?(ar?"جارٍ الإنشاء…":"Création…"):(ar?"إنشاء مسودتي":"Créer mon brouillon")}</button>{error&&<p className="form-message form-error" role="alert">{error} {needsLogin&&<a href={`/${locale}/connexion?returnTo=${encodeURIComponent(`/${locale}/catalogue/${templateId}`)}`}>{ar?"تسجيل الدخول":"Se connecter"}</a>}</p>}</div>;
 }

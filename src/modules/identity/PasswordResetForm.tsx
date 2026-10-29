@@ -32,7 +32,7 @@ export function PasswordResetForm({ locale, token }: { locale: "fr" | "ar"; toke
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       setStatus(isArabic ? "تم تحديث كلمة المرور." : "Votre mot de passe a été mis à jour.");
-      window.location.assign(`/${locale}/mes-documents`);
+      window.location.assign(`/${locale}/${result.status === "mfa_required" ? "securite" : "mes-documents"}`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Une erreur est survenue."); }
     finally { setPending(false); }
   }

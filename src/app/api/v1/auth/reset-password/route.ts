@@ -8,6 +8,8 @@ import { readJsonBody, requireSameOrigin, serviceUnavailable } from "@/modules/i
 import { hashPassword } from "@/modules/identity/password";
 import { createSecretToken, hashSecretToken } from "@/modules/identity/tokens";
 import { sessionLifetimeSeconds, setSessionCookie } from "@/modules/identity/service";
+import { userSecondFactors } from "@/modules/identity/advanced-schema";
+import { mustUseMfa } from "@/modules/identity/totp";
 import { isRateLimited } from "@/modules/identity/rate-limit";
 import { createHash } from "node:crypto";
 
@@ -60,7 +62,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "RESET_FAILED", message: "La modification a échoué. Demandez un nouveau lien." }, { status: 409 });
   }
 
-  const response = NextResponse.json({ status: "password_updated" });
+  const [account] = await database.select({ role: users.role }).from(users).where(eq(users.id, challenge.userId)).limit(1);
+  const [factor] = await database.select({ enabledAt: userSecondFactors.enabledAt }).from(userSecondFactors).where(eq(userSecondFactors.userId, challenge.userId)).limit(1);
+  const response = NextResponse.json({ status: account && mustUseMfa(account.role, Boolean(factor?.enabledAt)) ? "mfa_required" : "password_updated" });
   setSessionCookie(response, session.token);
   return response;
 }

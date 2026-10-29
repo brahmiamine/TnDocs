@@ -1,8 +1,9 @@
+import { lockStorageOwner } from "@/platform/storage/quota";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import { personalDossierItems, personalDossiers, storedFiles } from "@/platform/database/schema";
-import { deleteStoredAttachment } from "@/modules/dossiers/file-storage";
+import { enqueueJob } from "@/platform/jobs/queue";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { updateDossierItemSchema } from "@/modules/dossiers/schema";
@@ -40,15 +41,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ d
     eq(personalDossiers.id, dossierId), eq(personalDossiers.ownerUserId, user.id), eq(personalDossiers.status, "open"),
   )).limit(1);
   if (!dossier) return NextResponse.json({ code: "NOT_FOUND", message: "Dossier not found." }, { status: 404 });
-  const [item] = await db.select({ storedFileId: personalDossierItems.storedFileId }).from(personalDossierItems).where(and(
-    eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId),
-  )).limit(1);
-  if (!item) return NextResponse.json({ code: "ITEM_NOT_FOUND", message: "Checklist item not found." }, { status: 404 });
-  const [file] = item.storedFileId ? await db.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(eq(storedFiles.id, item.storedFileId)).limit(1) : [undefined];
-  await db.transaction(async (tx) => {
-    await tx.delete(personalDossierItems).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId)));
-    if (item.storedFileId) await tx.delete(storedFiles).where(eq(storedFiles.id, item.storedFileId));
-  });
-  if (file) await deleteStoredAttachment(file.storageKey);
+  try {
+    await db.transaction(async (tx) => {
+      await lockStorageOwner(tx, user.id);
+      const [liveDossier] = await tx.select({ id: personalDossiers.id }).from(personalDossiers).where(and(eq(personalDossiers.id, dossierId), eq(personalDossiers.ownerUserId, user.id), eq(personalDossiers.status, "open"))).for("update").limit(1);
+      if (!liveDossier) throw new Error("DOSSIER_UNAVAILABLE");
+      const [item] = await tx.select().from(personalDossierItems).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId))).for("update").limit(1);
+      if (!item) throw new Error("ITEM_NOT_FOUND");
+      const [file] = item.storedFileId ? await tx.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(and(eq(storedFiles.id, item.storedFileId), eq(storedFiles.ownerUserId, user.id))).limit(1) : [];
+      if (file) await enqueueJob({ kind: "storage.delete", key: `storage-delete:${file.storageKey}`, payload: { storageKey: file.storageKey }, maxAttempts: 10 }, tx);
+      await tx.delete(personalDossierItems).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId)));
+      if (item.storedFileId) await tx.delete(storedFiles).where(and(eq(storedFiles.id, item.storedFileId), eq(storedFiles.ownerUserId, user.id)));
+    });
+  } catch (error) {
+    return NextResponse.json({ code: error instanceof Error && error.message === "ITEM_NOT_FOUND" ? "ITEM_NOT_FOUND" : "DOSSIER_UNAVAILABLE" }, { status: error instanceof Error && error.message === "ITEM_NOT_FOUND" ? 404 : 503 });
+  }
   return NextResponse.json({ id: itemId, deleted: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

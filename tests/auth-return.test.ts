@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {safePostAuthPath} from '../src/modules/identity/return-path';
+test('post-authentication return accepts only exact same-locale public catalogue path',()=>{const path='/fr/catalogue/12345678-1234-1234-1234-123456789012';assert.equal(safePostAuthPath(path,'fr'),path);for(const bad of ['//evil.test',path+'?next=https://evil.test',path.replace('/fr/','/ar/'),'/fr/admin','https://evil.test',null])assert.equal(safePostAuthPath(bad,'fr'),null);});

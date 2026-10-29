@@ -1,3 +1,5 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
+import { copyPrivateDocumentDefinition } from "@/modules/private-templates/service";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -37,6 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
     const duplicateId = randomUUID();
     const encrypted = encryptDocumentData(content, user.id, duplicateId, 1);
     await database.transaction(async (tx) => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
       await tx.insert(personalDocuments).values({
         id: duplicateId, ownerUserId: user.id, templateId: source.templateId, templateVersionId: source.templateVersionId,
         title, status: "draft", currentRevision: 1,
@@ -45,9 +48,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
         id: randomUUID(), documentId: duplicateId, revision: 1,
         contentCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion, createdBy: user.id,
       });
+      await copyPrivateDocumentDefinition(source.id, duplicateId, user.id, tx);
     });
     return NextResponse.json({ id: duplicateId, title, revision: 1 }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED", message: "The account storage quota is reached." }, { status: 413 });
     return NextResponse.json({ code: "DOCUMENT_UNAVAILABLE", message: "The document could not be duplicated." }, { status: 503 });
   }
 }

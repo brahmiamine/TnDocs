@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+// Run against an isolated local production build with TEST_COOKIE_NAME=__Host-tndocs_session.
+if (!process.env.TEST_APP_URL || !process.env.DATABASE_URL) throw new Error('Set TEST_APP_URL and DATABASE_URL for the isolated offline reopen environment.');
+if (!['localhost','127.0.0.1','[::1]'].includes(new URL(process.env.TEST_APP_URL).hostname) || !/(test|verify)/i.test(new URL(process.env.DATABASE_URL).pathname)) throw new Error('Offline reopen integration requires a local test/verify database.');
+async function main(){
+ const {eq}=await import('drizzle-orm');
+ const { database:db }=await import('../../src/platform/database/client');if(!db)throw Error('DB missing');
+ const {users,sessions,personalDocuments,documentRevisions}=await import('../../src/platform/database/schema');
+ const {privateDocumentModels}=await import('../../src/modules/private-templates/db-schema');
+ const {createSecretToken}=await import('../../src/modules/identity/tokens');
+ const {encryptDocumentData}=await import('../../src/modules/documents/crypto');
+ const {encryptPrivateDocumentModel}=await import('../../src/modules/private-templates/model');
+ const ownerId=randomUUID(),documentId=randomUUID(),secret=createSecretToken();
+ const base=process.env.TEST_APP_URL??process.env.APP_URL!;const cookieName=process.env.TEST_COOKIE_NAME??"tndocs_session";
+ await db.insert(users).values({id:ownerId,email:`offline-${randomUUID()}@example.test`,passwordHash:'session-fixture-only',status:'active',emailVerifiedAt:new Date()});
+ await db.insert(sessions).values({id:randomUUID(),userId:ownerId,tokenHash:secret.hash,expiresAt:new Date(Date.now()+3600000)});
+ const model={title:'Offline fictitious',body:'Original fictitious body',locale:'fr' as const,formSchema:null};
+ const content={...model,answers:{}};
+ const encrypted=encryptDocumentData(content,ownerId,documentId,1),definition=encryptPrivateDocumentModel(model,ownerId,documentId);
+ await db.insert(personalDocuments).values({id:documentId,ownerUserId:ownerId,title:model.title,status:'draft',currentRevision:1});
+ await db.insert(documentRevisions).values({id:randomUUID(),documentId,revision:1,contentCiphertext:encrypted.ciphertext,encryptionKeyVersion:encrypted.keyVersion,createdBy:ownerId});
+ await db.insert(privateDocumentModels).values({documentId,sourceVersion:1,contentCiphertext:definition.ciphertext,encryptionKeyVersion:definition.keyVersion});
+ const puppeteer=await import('puppeteer-core');
+ const profile=`work/offline-reopen-${randomUUID()}`;
+ const launch=()=>puppeteer.launch({executablePath:process.env.CHROMIUM_EXECUTABLE_PATH!,headless:true,args:['--no-sandbox','--disable-setuid-sandbox'],userDataDir:profile});
+ const shell=`${base}/fr/hors-ligne#account=${ownerId}&document=${documentId}`;
+ const localText='Persistent fictitious private draft';
+ let browser=await launch();
+ try{
+  let page=await browser.newPage();page.setDefaultTimeout(45000);
+  await page.setCookie({name:cookieName,secure:cookieName.startsWith('__Host-'),path:'/',value:secret.token,url:base,httpOnly:true,sameSite:'Strict'});
+  await page.goto(`${base}/fr/mes-documents/${documentId}`,{waitUntil:'networkidle0'});
+  await page.waitForSelector('.document-body-input');
+  await page.click('details.auth-card > summary');await page.click('details.auth-card input[type=checkbox]');
+  await page.type('details.auth-card input[type=password]','offline-browser-test-secret');
+  await page.$eval('details.auth-card form',form=>(form as HTMLFormElement).requestSubmit());
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('details.auth-card button')).some(button=>button.textContent?.includes('Verrouiller')));
+  await page.goto(shell,{waitUntil:'networkidle0'});
+  await page.waitForSelector('input[type=password]');await page.type('input[type=password]','offline-browser-test-secret');
+  await page.$eval('form',form=>(form as HTMLFormElement).requestSubmit());await page.waitForSelector('textarea');
+  await page.setOfflineMode(true);await page.click('textarea');await page.keyboard.down('Control');await page.keyboard.press('A');await page.keyboard.up('Control');await page.type('textarea',localText);
+  await page.waitForFunction(()=>document.body.textContent?.includes('Modifications enregistrées et chiffrées'));
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('button')).some(button=>button.textContent?.trim()==='Verrouiller'&&!(button as HTMLButtonElement).disabled));
+  assert.equal(await page.evaluate(async()=>{const cache=await caches.open('tndocs-public-v2');return Boolean(await cache.match('/fr/hors-ligne'))}),true,'static shell present in public cache');
+  const cachedPaths=await page.evaluate(async()=>{const cache=await caches.open('tndocs-public-v2');return (await cache.keys()).map(request=>new URL(request.url).pathname)});
+  assert.equal(cachedPaths.some(path=>path.startsWith('/api/')||path.includes('/fr/mes-documents/')),false,'public cache contains no authenticated HTML or API');
+  await browser.close();
+  browser=await launch();page=await browser.newPage();page.setDefaultTimeout(45000);await page.setOfflineMode(true);
+  const response=await page.goto(shell,{waitUntil:'networkidle0'});
+  assert.equal(response?.fromServiceWorker(),true,'offline reopen is served by service worker');
+  await page.waitForSelector('input[type=password]');
+  assert.equal((await page.content()).includes(localText),false,'browser restart does not retain decrypted content');
+  await page.type('input[type=password]','wrong-secret-phrase');await page.$eval('form',form=>(form as HTMLFormElement).requestSubmit());
+  await page.waitForFunction(()=>document.body.textContent?.includes('Ouverture impossible'));
+  assert.equal((await page.content()).includes(localText),false,'wrong secret never reveals draft');
+  await page.type('input[type=password]','offline-browser-test-secret');await page.$eval('form',form=>(form as HTMLFormElement).requestSubmit());await page.waitForSelector('textarea');
+  assert.equal(await page.$eval('textarea',element=>(element as HTMLTextAreaElement).value),localText,'authorized encrypted draft survives browser restart offline');
+  const server=await (await fetch(`${base}/api/v1/me/documents/${documentId}`,{headers:{Cookie:`${cookieName}=${secret.token}`}})).json();
+  assert.equal(server.document.content.body,model.body,'offline shell never silently synchronizes server');
+  page.once('dialog',dialog=>void dialog.accept());
+  await page.evaluate(()=>{const button=Array.from(document.querySelectorAll('button')).find(item=>item.textContent?.includes('Effacer les copies locales de ce compte'));if(!button)throw Error('Clear control missing');button.click()});
+  await page.waitForFunction(()=>document.body.textContent?.includes('Copies locales de ce compte effacées'));
+  console.log('OFFLINE_SHELL_REOPEN_OK cached static shell + encrypted draft + browser restart + wrong secret + no silent sync + explicit clear');
+ }finally{await browser.close();await db.delete(documentRevisions).where(eq(documentRevisions.documentId,documentId));await db.delete(personalDocuments).where(eq(personalDocuments.id,documentId));await db.delete(users).where(eq(users.id,ownerId));}
+}
+main().then(()=>process.exit(0)).catch(error=>{console.error(error instanceof Error?error.message:error);process.exit(1)});

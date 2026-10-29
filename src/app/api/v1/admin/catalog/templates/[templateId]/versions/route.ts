@@ -18,7 +18,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
     const version = await addCatalogDraftVersion(templateId, parsed.data, user.id);
     return NextResponse.json(version, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    if (error instanceof Error && error.message === "UNKNOWN_CATEGORY") return NextResponse.json({ code: "UNKNOWN_CATEGORY", message: "One or more category slugs do not exist." }, { status: 400 });
+    if (error instanceof Error && error.message === "UNKNOWN_ORGANIZATION") return NextResponse.json({code:"UNKNOWN_ORGANIZATION",message:"The selected organization is missing or inactive."},{status:400});
+    if (error instanceof Error && error.message === "UNKNOWN_CATEGORY") return NextResponse.json({ code: "UNKNOWN_CATEGORY", message: "One or more categories are missing or inactive." }, { status: 400 });
     if (error instanceof Error && error.message === "TEMPLATE_NOT_EDITABLE") return NextResponse.json({ code: "NOT_FOUND", message: "Editable template not found." }, { status: 404 });
     return NextResponse.json({ code: "CATALOG_UNAVAILABLE", message: "The version could not be saved." }, { status: 503 });
   }

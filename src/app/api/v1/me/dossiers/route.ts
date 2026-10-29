@@ -1,3 +1,4 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -8,13 +9,14 @@ import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { decryptDossierData, encryptDossierData } from "@/modules/documents/crypto";
 import { createDossierSchema } from "@/modules/dossiers/schema";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ code: "UNAUTHENTICATED", message: "Authentication required." }, { status: 401 });
   if (!database) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Dossier service is not configured." }, { status: 503 });
   try {
+    const includeTrash = new URL(request.url).searchParams.get("includeTrash") === "true";
     const rows = await database.select().from(personalDossiers).where(and(
-      eq(personalDossiers.ownerUserId, user.id), ne(personalDossiers.status, "trash"),
+      eq(personalDossiers.ownerUserId, user.id), includeTrash ? eq(personalDossiers.status, "trash") : ne(personalDossiers.status, "trash"),
     )).orderBy(desc(personalDossiers.updatedAt)).limit(100);
     const itemRows = rows.length ? await database.select({ dossierId: personalDossierItems.dossierId }).from(personalDossierItems)
       .where(inArray(personalDossierItems.dossierId, rows.map(({ id }) => id))) : [];
@@ -43,9 +45,13 @@ export async function POST(request: Request) {
   const id = randomUUID();
   try {
     const encrypted = encryptDossierData(parsed.data.title, user.id, id);
-    await db.insert(personalDossiers).values({ id, ownerUserId: user.id, titleCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion });
+    await db.transaction(async tx => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
+      await tx.insert(personalDossiers).values({ id, ownerUserId: user.id, titleCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion });
+    });
     return NextResponse.json({ id, title: parsed.data.title, status: "open" }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED" }, { status: 413 });
     return NextResponse.json({ code: "DOSSIER_UNAVAILABLE", message: "The dossier could not be created." }, { status: 503 });
   }
 }

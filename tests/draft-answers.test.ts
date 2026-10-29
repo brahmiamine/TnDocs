@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {validateDraftAnswers} from '../src/modules/documents/draft-answers';import {formSchema,validateFormAnswers} from '../src/modules/documents/form-schema';
+const form=formSchema.parse({schemaVersion:1,fields:[{key:'email',kind:'email',label:{fr:'Email',ar:'بريد'},required:true}]});
+test('autosave preserves incomplete inputs while export still enforces requirements',()=>{assert.equal(validateDraftAnswers(form,{}),true);assert.equal(validateDraftAnswers(form,{email:'typing@'}),true);assert.equal(validateFormAnswers(form,{email:'typing@'}),false);assert.equal(validateDraftAnswers(form,{unknown:'abc'}),false);assert.equal(validateDraftAnswers(form,{email:{html:'<script>'}}),false);});

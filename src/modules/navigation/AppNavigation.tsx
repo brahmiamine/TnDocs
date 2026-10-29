@@ -1,0 +1,8 @@
+import {PublicSupportLinks} from '@/modules/administration/PublicSupportLinks';
+import Link from 'next/link';
+import {ThemeSwitch} from './ThemeSwitch';
+export function AppNavigation({locale}:{locale:'fr'|'ar'}){
+ const ar=locale==='ar';
+ const links=[['catalogue',ar?'النماذج':'Catalogue'],['assistant',ar?'دليل الإجراءات':'Assistant'],['mes-documents',ar?'وثائقي':'Documents'],['mes-modeles',ar?'نماذجي':'Mes modèles'],['dossiers',ar?'ملفاتي':'Dossiers'],['profils',ar?'الأشخاص':'Profils'],['notifications',ar?'الإشعارات':'Notifications'],['securite',ar?'الأمان':'Sécurité'],['contributions',ar?'مساهماتي':'Contributions'],['aide',ar?'مساعدة':'Aide'],['contact',ar?'اتصل بنا':'Contact'],['admin',ar?'الإدارة':'Administration']];
+ return <><nav className="app-navigation" aria-label={ar?'التنقل الرئيسي':'Navigation principale'}><Link href={`/${locale}`} className="brand">TnDocs</Link><details><summary>{ar?'القائمة':'Menu'}</summary><div>{links.map(([path,label])=><Link key={path} href={`/${locale}/${path}`}>{label}</Link>)}</div></details><ThemeSwitch locale={locale}/><Link href={`/${locale==='fr'?'ar':'fr'}`}>{ar?'Français':'العربية'}</Link></nav><PublicSupportLinks locale={locale}/><footer className="app-footer"><span>{ar?'مجانية ومستقلة عن الإدارات العمومية.':'Plateforme gratuite et indépendante des administrations.'}</span>{['confidentialite','conditions','mentions','cookies'].map(path=><Link key={path} href={`/${locale}/informations/${path}`}>{path==='confidentialite'?(ar?'الخصوصية':'Confidentialité'):path==='conditions'?(ar?'الشروط':'Conditions'):path==='cookies'?(ar?'ملفات الارتباط':'Cookies'):(ar?'معلومات قانونية':'Mentions légales')}</Link>)}</footer></>;
+}

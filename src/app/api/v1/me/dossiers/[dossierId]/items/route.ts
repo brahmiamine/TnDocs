@@ -1,3 +1,4 @@
+import { assertStorageQuota } from "@/platform/storage/quota";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -31,13 +32,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ dos
   const id = randomUUID();
   try {
     const encrypted = encryptDossierData(parsed.data.label, user.id, id);
-    await db.insert(personalDossierItems).values({
+    await db.transaction(async tx => {
+      await assertStorageQuota(tx, user.id, Buffer.byteLength(encrypted.ciphertext));
+      const [live] = await tx.select({ id: personalDossiers.id }).from(personalDossiers).where(and(eq(personalDossiers.id, dossierId), eq(personalDossiers.ownerUserId, user.id), eq(personalDossiers.status, "open"))).for("update").limit(1);
+      if (!live) throw new Error("DOSSIER_UNAVAILABLE");
+      await tx.insert(personalDossierItems).values({
       id, dossierId, linkedDocumentId: parsed.data.documentId ?? null, kind: parsed.data.documentId ? "document" : "checklist",
       status: parsed.data.documentId ? "added" : "missing", required: parsed.data.required ? 1 : 0,
       labelCiphertext: encrypted.ciphertext, encryptionKeyVersion: encrypted.keyVersion,
+      });
     });
     return NextResponse.json({ id, dossierId, label: parsed.data.label, status: parsed.data.documentId ? "added" : "missing" }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "STORAGE_QUOTA_EXCEEDED") return NextResponse.json({ code: "STORAGE_QUOTA_EXCEEDED" }, { status: 413 });
     return NextResponse.json({ code: "DOSSIER_UNAVAILABLE", message: "The checklist item could not be saved." }, { status: 503 });
   }
 }

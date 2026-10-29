@@ -2,12 +2,13 @@ import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
-import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments, users } from "@/platform/database/schema";
+import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments, storedFiles, users } from "@/platform/database/schema";
 import { getCurrentUser, requireDatabase, clearSessionCookie } from "@/modules/identity/service";
 import { burnPasswordCheck, verifyPassword } from "@/modules/identity/password";
 import { isRateLimited } from "@/modules/identity/rate-limit";
 import { readJsonBody, requireSameOrigin, serviceUnavailable } from "@/modules/identity/http";
 import { hashSecretToken } from "@/modules/identity/tokens";
+import { deleteStoredAttachment } from "@/modules/dossiers/file-storage";
 
 const deletionSchema = z.object({ password: z.string().min(1).max(256), confirmation: z.literal(true) });
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "ACCOUNT_HAS_CATALOG_CONTRIBUTIONS", message: "This account owns catalog records and must be transferred before deletion." }, { status: 409 });
   }
 
+  const fileObjects = await db.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(eq(storedFiles.ownerUserId, user.id));
   await db.transaction(async (tx) => {
     const ownedDocuments = await tx.select({ id: personalDocuments.id }).from(personalDocuments).where(eq(personalDocuments.ownerUserId, user.id));
     if (ownedDocuments.length) {
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
     }
     await tx.delete(users).where(and(eq(users.id, user.id), eq(users.status, "active")));
   });
+  await Promise.all(fileObjects.map(({ storageKey }) => deleteStoredAttachment(storageKey).catch(() => undefined)));
 
   const response = NextResponse.json({ status: "account_deleted" }, { headers: { "Cache-Control": "private, no-store" } });
   clearSessionCookie(response);

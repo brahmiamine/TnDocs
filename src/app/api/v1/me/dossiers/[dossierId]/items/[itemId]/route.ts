@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
-import { personalDossierItems, personalDossiers } from "@/platform/database/schema";
+import { personalDossierItems, personalDossiers, storedFiles } from "@/platform/database/schema";
+import { deleteStoredAttachment } from "@/modules/dossiers/file-storage";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { updateDossierItemSchema } from "@/modules/dossiers/schema";
@@ -39,7 +40,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ d
     eq(personalDossiers.id, dossierId), eq(personalDossiers.ownerUserId, user.id), eq(personalDossiers.status, "open"),
   )).limit(1);
   if (!dossier) return NextResponse.json({ code: "NOT_FOUND", message: "Dossier not found." }, { status: 404 });
-  const result = await db.delete(personalDossierItems).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId)));
-  if (!result[0].affectedRows) return NextResponse.json({ code: "ITEM_NOT_FOUND", message: "Checklist item not found." }, { status: 404 });
+  const [item] = await db.select({ storedFileId: personalDossierItems.storedFileId }).from(personalDossierItems).where(and(
+    eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId),
+  )).limit(1);
+  if (!item) return NextResponse.json({ code: "ITEM_NOT_FOUND", message: "Checklist item not found." }, { status: 404 });
+  const [file] = item.storedFileId ? await db.select({ storageKey: storedFiles.storageKey }).from(storedFiles).where(eq(storedFiles.id, item.storedFileId)).limit(1) : [undefined];
+  await db.transaction(async (tx) => {
+    await tx.delete(personalDossierItems).where(and(eq(personalDossierItems.id, itemId), eq(personalDossierItems.dossierId, dossierId)));
+    if (item.storedFileId) await tx.delete(storedFiles).where(eq(storedFiles.id, item.storedFileId));
+  });
+  if (file) await deleteStoredAttachment(file.storageKey);
   return NextResponse.json({ id: itemId, deleted: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

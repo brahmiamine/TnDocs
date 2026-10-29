@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dos
   try {
     const rows = await db.select().from(personalDossierItems).where(eq(personalDossierItems.dossierId, dossierId)).orderBy(personalDossierItems.createdAt);
     const items = rows.map((row) => ({
-      id: row.id, linkedDocumentId: row.linkedDocumentId, kind: row.kind, status: row.status, required: row.required === 1,
+      id: row.id, linkedDocumentId: row.linkedDocumentId, storedFileId: row.storedFileId, kind: row.kind, status: row.status, required: row.required === 1,
       label: decryptDossierData<string>(row.labelCiphertext, row.encryptionKeyVersion, user.id, row.id), createdAt: row.createdAt,
     }));
     return NextResponse.json({ dossier: { id: dossier.id, title: decryptDossierData<string>(dossier.titleCiphertext, dossier.encryptionKeyVersion, user.id, dossier.id), items } }, { headers: { "Cache-Control": "private, no-store" } });

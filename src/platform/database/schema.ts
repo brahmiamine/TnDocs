@@ -110,11 +110,25 @@ export const personalDossiers = mysqlTable("personal_dossiers", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("personal_dossiers_owner_updated_idx").on(table.ownerUserId, table.updatedAt)]);
 
+export const storedFiles = mysqlTable("stored_files", {
+  id: id("id").primaryKey(),
+  ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  dossierId: id("dossier_id").notNull().references(() => personalDossiers.id, { onDelete: "cascade" }),
+  storageKey: varchar("storage_key", { length: 255 }).notNull(),
+  mimeType: mysqlEnum("mime_type", ["application/pdf", "image/jpeg", "image/png"]).notNull(),
+  byteSize: int("byte_size").notNull(),
+  sha256: varchar("sha256", { length: 64 }).notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  scanStatus: mysqlEnum("scan_status", ["clean"]).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("stored_files_storage_key_unique").on(table.storageKey), index("stored_files_owner_idx").on(table.ownerUserId), index("stored_files_dossier_idx").on(table.dossierId)]);
+
 export const personalDossierItems = mysqlTable("personal_dossier_items", {
   id: id("id").primaryKey(),
   dossierId: id("dossier_id").notNull().references(() => personalDossiers.id, { onDelete: "cascade" }),
   linkedDocumentId: id("linked_document_id").references(() => personalDocuments.id, { onDelete: "set null" }),
-  kind: mysqlEnum("kind", ["checklist", "document"]).notNull().default("checklist"),
+  storedFileId: id("stored_file_id").references(() => storedFiles.id, { onDelete: "set null" }),
+  kind: mysqlEnum("kind", ["checklist", "document", "file"]).notNull().default("checklist"),
   status: mysqlEnum("status", ["missing", "added", "reviewed", "expired"]).notNull().default("missing"),
   required: int("required").notNull().default(1),
   labelCiphertext: text("label_ciphertext").notNull(),

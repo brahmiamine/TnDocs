@@ -30,7 +30,7 @@ export async function getPublicCategories(locale: "fr" | "ar") {
 export async function getPublicTemplates(locale: "fr" | "ar", options: { category?: string; query?: string; limit?: number } = {}) {
   if (!database) return [];
   const clauses = [eq(catalogTemplates.status, "published")];
-  const searchIds = options.query ? await searchPublishedTemplateIds(options.query, locale, options.category) : null;
+  const searchIds = options.query ? await searchPublishedTemplateIds(options.query, options.category) : null;
   if (searchIds !== null) {
     if (searchIds.length === 0) return [];
     clauses.push(inArray(catalogTemplates.id, searchIds));

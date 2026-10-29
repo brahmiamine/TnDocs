@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, like, ne, or } from "drizzle-orm";
 import { database } from "@/platform/database/client";
 import {
   catalogCategories,
@@ -129,17 +129,53 @@ export async function rebuildPublishedTemplateIndex() {
   return { configured: true, indexed: count, previousIndex: previous, activeIndex: next };
 }
 
-export async function searchPublishedTemplateIds(query: string, locale: "fr" | "ar", category?: string) {
-  const index = await activeIndex();
-  if (!index) return null;
-  const filters = [`locale = ${locale}`];
-  if (category) filters.push(`categorySlugs = ${category}`);
+export async function searchPublishedTemplateIds(query: string, category?: string) {
+  let index: string | null;
   try {
-    const result = await requestMeili(`/indexes/${encodeURIComponent(index)}/search`, {
-      method: "POST", body: JSON.stringify({ q: query, filter: filters.join(" AND "), limit: 100, attributesToRetrieve: ["templateId"] }),
+    index = await activeIndex();
+  } catch {
+    return fallbackSearchPublishedTemplateIds(query, category);
+  }
+  if (!index) return fallbackSearchPublishedTemplateIds(query, category);
+  const filters: string[] = [];
+  if (category) filters.push('categorySlugs = "' + category.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"');
+  try {
+    const result = await requestMeili("/indexes/" + encodeURIComponent(index) + "/search", {
+      method: "POST", body: JSON.stringify({
+        q: query,
+        ...(filters.length ? { filter: filters.join(" AND ") } : {}),
+        limit: 100,
+        attributesToRetrieve: ["templateId"],
+      }),
     }) as { hits?: Array<{ templateId?: string }> };
     return [...new Set((result.hits ?? []).map((hit) => hit.templateId).filter((id): id is string => Boolean(id)))];
   } catch {
-    return null;
+    return fallbackSearchPublishedTemplateIds(query, category);
   }
+}
+
+async function fallbackSearchPublishedTemplateIds(query: string, category?: string) {
+  if (!database) return [];
+  const escapedQuery = query.replace(/[\\%_]/g, "\\$&");
+  const pattern = "%" + escapedQuery + "%";
+  const categoryTemplateIds = category ? database.select({ templateId: catalogTemplates.id }).from(catalogTemplates)
+    .innerJoin(catalogTemplateCategories, eq(catalogTemplateCategories.versionId, catalogTemplates.publishedVersionId))
+    .innerJoin(catalogCategories, eq(catalogCategories.id, catalogTemplateCategories.categoryId))
+    .where(and(eq(catalogTemplates.status, "published"), eq(catalogCategories.slug, category), eq(catalogCategories.active, 1))) : undefined;
+  const rows = await database.selectDistinct({ id: catalogTemplates.id }).from(catalogTemplates)
+    .innerJoin(catalogTemplateVersions, and(
+      eq(catalogTemplateVersions.id, catalogTemplates.publishedVersionId), eq(catalogTemplateVersions.status, "published"),
+    ))
+    .innerJoin(catalogTemplateTranslations, eq(catalogTemplateTranslations.versionId, catalogTemplateVersions.id))
+    .where(and(
+      eq(catalogTemplates.status, "published"),
+      or(
+        like(catalogTemplateTranslations.title, pattern),
+        like(catalogTemplateTranslations.summary, pattern),
+        like(catalogTemplateTranslations.instructions, pattern),
+        and(ne(catalogTemplates.documentType, "official"), like(catalogTemplateTranslations.body, pattern)),
+      ),
+      categoryTemplateIds ? inArray(catalogTemplates.id, categoryTemplateIds) : undefined,
+    )).limit(100);
+  return rows.map(({ id }) => id);
 }

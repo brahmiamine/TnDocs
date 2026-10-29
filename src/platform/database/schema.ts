@@ -60,6 +60,28 @@ export const personProfiles = mysqlTable("person_profiles", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("person_profiles_owner_id_idx").on(table.ownerUserId)]);
 
+export const personalDocuments = mysqlTable("personal_documents", {
+  id: id("id").primaryKey(),
+  ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  templateId: id("template_id").references(() => catalogTemplates.id, { onDelete: "set null" }),
+  templateVersionId: id("template_version_id"),
+  title: varchar("title", { length: 240 }).notNull(),
+  status: mysqlEnum("status", ["draft", "finalized", "archived", "trash"]).notNull().default("draft"),
+  currentRevision: int("current_revision").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_template_id_idx").on(table.templateId)]);
+
+export const documentRevisions = mysqlTable("document_revisions", {
+  id: id("id").primaryKey(),
+  documentId: id("document_id").notNull().references(() => personalDocuments.id, { onDelete: "cascade" }),
+  revision: int("revision").notNull(),
+  contentCiphertext: text("content_ciphertext").notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("document_revisions_document_revision_unique").on(table.documentId, table.revision), index("document_revisions_created_idx").on(table.documentId, table.createdAt)]);
+
 export const catalogCategories = mysqlTable("catalog_categories", {
   id: id("id").primaryKey(),
   parentId: id("parent_id").references((): AnyMySqlColumn => catalogCategories.id, { onDelete: "set null" }),

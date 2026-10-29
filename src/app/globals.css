@@ -124,6 +124,7 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .empty-state h2 { margin: 0 0 8px; font-size: 20px; }
 .empty-state p { margin: 0 auto 20px; color: var(--muted); font-size: 14px; line-height: 1.7; }
 .user-email { max-width: 250px; overflow: hidden; color: #5c625c; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.data-export-links { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
 .user-actions { display: flex; align-items: center; gap: 17px; }
 .profile-nav-link { color: var(--green); font-size: 13px; font-weight: 700; }
 .profile-layout { display: grid; grid-template-columns: minmax(320px, 480px) minmax(260px, 1fr); align-items: start; gap: 35px; }

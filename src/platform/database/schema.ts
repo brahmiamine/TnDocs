@@ -72,6 +72,24 @@ export const personalDocuments = mysqlTable("personal_documents", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_template_id_idx").on(table.templateId)]);
 
+export const personalDocumentShares = mysqlTable("personal_document_shares", {
+  id: id("id").primaryKey(),
+  documentId: id("document_id").notNull().references(() => personalDocuments.id, { onDelete: "cascade" }),
+  revision: int("revision").notNull(),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+  permission: mysqlEnum("permission", ["view"]).notNull().default("view"),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("personal_document_shares_token_hash_unique").on(table.tokenHash), index("personal_document_shares_document_created_idx").on(table.documentId, table.createdAt)]);
+
+export const personalDocumentShareEvents = mysqlTable("personal_document_share_events", {
+  id: id("id").primaryKey(),
+  shareId: id("share_id").notNull().references(() => personalDocumentShares.id, { onDelete: "cascade" }),
+  eventType: mysqlEnum("event_type", ["created", "revoked", "accessed"]).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("personal_document_share_events_share_created_idx").on(table.shareId, table.createdAt)]);
+
 export const documentRevisions = mysqlTable("document_revisions", {
   id: id("id").primaryKey(),
   documentId: id("document_id").notNull().references(() => personalDocuments.id, { onDelete: "cascade" }),

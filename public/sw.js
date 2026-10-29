@@ -1,6 +1,6 @@
 const CACHE_NAME = "tndocs-public-v1";
 const PUBLIC_START_PAGES = ["/fr", "/ar"];
-const PRIVATE_PATH = /^\/(?:api(?:\/|$)|(?:fr|ar)\/(?:admin|mes-documents|profils|dossiers|connexion|inscription|verifier-email|mot-de-passe-oublie|reinitialiser-mot-de-passe)(?:\/|$))/;
+const PRIVATE_PATH = /^\/(?:api(?:\/|$)|(?:fr|ar)\/(?:admin|mes-documents|profils|dossiers|partage|connexion|inscription|verifier-email|mot-de-passe-oublie|reinitialiser-mot-de-passe)(?:\/|$))/;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PUBLIC_START_PAGES)));

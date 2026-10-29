@@ -36,6 +36,13 @@
       "when": 1793275894750,
       "tag": "0004_personal_dossiers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1793278092979,
+      "tag": "0005_personal_document_shares",
+      "breakpoints": true
     }
   ]
 }

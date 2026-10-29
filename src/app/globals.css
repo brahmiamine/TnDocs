@@ -213,6 +213,18 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .document-preview h2 { margin: 15px 0 25px; padding-bottom: 15px; border-bottom: 1px solid var(--line); font-family: Georgia, serif; font-size: 22px; text-align: center; }
 .revision-history { margin: 0 0 20px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
 .revision-history h2 { margin: 0 0 10px; font-size: 16px; }
+.share-manager { margin-block: 20px; }
+.share-manager h2 { margin: 0 0 8px; font-size: 18px; }
+.share-manager > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.share-create-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+.share-create-row label { font-size: 13px; font-weight: 700; }
+.share-create-row select { min-height: 42px; padding: 0 12px; border: 1px solid #dcded8; border-radius: 8px; background: white; color: var(--ink); }
+.share-link-box { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: #faf9f7; }
+.share-link-box input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font-size: 12px; }
+.share-list { margin-top: 13px; }
+.share-viewer { max-width: 820px; margin: 0 auto; padding: 32px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.share-viewer h1 { margin: 12px 0 24px; font-size: clamp(25px, 4vw, 36px); }
+.share-viewer-body { min-height: 120px; padding-block: 20px; border-block: 1px solid var(--line); }
 .revision-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .document-form-fields { display: flex; flex-direction: column; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 9px; }
 .document-form-fields legend { padding-inline: 7px; color: var(--green); font-size: 12px; font-weight: 750; }

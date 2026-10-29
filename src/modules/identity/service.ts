@@ -28,7 +28,7 @@ export async function getCurrentUser() {
   const token = (await cookies()).get(sessionCookieName)?.value;
   if (!token || !database) return null;
   const [row] = await database.select({
-    user: { id: users.id, email: users.email, preferredLocale: users.preferredLocale },
+    user: { id: users.id, email: users.email, preferredLocale: users.preferredLocale, role: users.role },
   }).from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(and(

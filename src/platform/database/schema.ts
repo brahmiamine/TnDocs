@@ -1,4 +1,5 @@
-import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, int, json, mysqlEnum, mysqlTable, primaryKey, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
 
 const id = (name: string) => varchar(name, { length: 36 });
 
@@ -14,6 +15,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }).notNull(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   status: mysqlEnum("status", ["pending_verification", "active", "suspended"]).notNull().default("pending_verification"),
+  role: mysqlEnum("role", ["user", "moderator", "admin"]).notNull().default("user"),
   preferredLocale: mysqlEnum("preferred_locale", ["fr", "ar"]).notNull().default("fr"),
   emailVerifiedAt: timestamp("email_verified_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -57,3 +59,82 @@ export const personProfiles = mysqlTable("person_profiles", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("person_profiles_owner_id_idx").on(table.ownerUserId)]);
+
+export const catalogCategories = mysqlTable("catalog_categories", {
+  id: id("id").primaryKey(),
+  parentId: id("parent_id").references((): AnyMySqlColumn => catalogCategories.id, { onDelete: "set null" }),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  sortOrder: int("sort_order").notNull().default(0),
+  active: int("active").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("catalog_categories_slug_unique").on(table.slug), index("catalog_categories_parent_id_idx").on(table.parentId)]);
+
+export const catalogCategoryTranslations = mysqlTable("catalog_category_translations", {
+  categoryId: id("category_id").notNull().references(() => catalogCategories.id, { onDelete: "cascade" }),
+  locale: mysqlEnum("locale", ["fr", "ar"]).notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: varchar("description", { length: 500 }).notNull().default(""),
+}, (table) => [primaryKey({ columns: [table.categoryId, table.locale] })]);
+
+export const catalogOrganizations = mysqlTable("catalog_organizations", {
+  id: id("id").primaryKey(),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  officialUrl: varchar("official_url", { length: 2048 }),
+  active: int("active").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("catalog_organizations_slug_unique").on(table.slug)]);
+
+export const catalogOrganizationTranslations = mysqlTable("catalog_organization_translations", {
+  organizationId: id("organization_id").notNull().references(() => catalogOrganizations.id, { onDelete: "cascade" }),
+  locale: mysqlEnum("locale", ["fr", "ar"]).notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: varchar("description", { length: 500 }).notNull().default(""),
+}, (table) => [primaryKey({ columns: [table.organizationId, table.locale] })]);
+
+export const catalogTemplates = mysqlTable("catalog_templates", {
+  id: id("id").primaryKey(),
+  status: mysqlEnum("status", ["draft", "in_review", "published", "archived"]).notNull().default("draft"),
+  documentType: mysqlEnum("document_type", ["editable", "official", "informational"]).notNull(),
+  organizationId: id("organization_id").references(() => catalogOrganizations.id, { onDelete: "set null" }),
+  publishedVersionId: id("published_version_id"),
+  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("catalog_templates_status_published_idx").on(table.status, table.publishedAt)]);
+
+export const catalogTemplateVersions = mysqlTable("catalog_template_versions", {
+  id: id("id").primaryKey(),
+  templateId: id("template_id").notNull().references(() => catalogTemplates.id, { onDelete: "cascade" }),
+  version: int("version").notNull(),
+  status: mysqlEnum("status", ["draft", "in_review", "published", "archived"]).notNull().default("draft"),
+  formSchema: json("form_schema"),
+  documentContent: json("document_content"),
+  createdBy: id("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [uniqueIndex("catalog_template_versions_template_version_unique").on(table.templateId, table.version), index("catalog_template_versions_template_id_idx").on(table.templateId)]);
+
+export const catalogTemplateTranslations = mysqlTable("catalog_template_translations", {
+  versionId: id("version_id").notNull().references(() => catalogTemplateVersions.id, { onDelete: "cascade" }),
+  locale: mysqlEnum("locale", ["fr", "ar"]).notNull(),
+  title: varchar("title", { length: 240 }).notNull(),
+  summary: varchar("summary", { length: 1000 }).notNull(),
+  instructions: text("instructions").notNull(),
+  body: text("body").notNull(),
+}, (table) => [primaryKey({ columns: [table.versionId, table.locale] })]);
+
+export const catalogTemplateCategories = mysqlTable("catalog_template_categories", {
+  versionId: id("version_id").notNull().references(() => catalogTemplateVersions.id, { onDelete: "cascade" }),
+  categoryId: id("category_id").notNull().references(() => catalogCategories.id, { onDelete: "cascade" }),
+}, (table) => [primaryKey({ columns: [table.versionId, table.categoryId] }), index("catalog_template_categories_category_idx").on(table.categoryId)]);
+
+export const catalogTemplateSources = mysqlTable("catalog_template_sources", {
+  id: id("id").primaryKey(),
+  versionId: id("version_id").notNull().references(() => catalogTemplateVersions.id, { onDelete: "cascade" }),
+  sourceName: varchar("source_name", { length: 180 }).notNull(),
+  sourceUrl: varchar("source_url", { length: 2048 }).notNull(),
+  official: int("official").notNull().default(0),
+  reusePermission: mysqlEnum("reuse_permission", ["pending", "allowed", "no_reproduction", "forbidden"]).notNull().default("pending"),
+  checkedAt: timestamp("checked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("catalog_template_sources_version_id_idx").on(table.versionId)]);

@@ -14,9 +14,11 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {
+    "dotenv": "^18.0.9",
     "drizzle-orm": "^0.44.7",
     "mysql2": "^3.15.3",
     "next": "^15.5.6",

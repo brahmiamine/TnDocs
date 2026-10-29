@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import {
@@ -7,6 +7,9 @@ import {
   personalDocuments,
   personalDossierItems,
   personalDossiers,
+  personalDocumentShareEvents,
+  personalDocumentShares,
+  storedFiles,
 } from "@/platform/database/schema";
 import { decryptDocumentData, decryptDossierData } from "@/modules/documents/crypto";
 import { decryptProfileData } from "@/modules/profiles/crypto";
@@ -25,10 +28,18 @@ export async function GET() {
       db.select().from(personalDocuments).where(eq(personalDocuments.ownerUserId, user.id)).orderBy(asc(personalDocuments.createdAt)),
       db.select().from(personalDossiers).where(eq(personalDossiers.ownerUserId, user.id)).orderBy(asc(personalDossiers.createdAt)),
     ]);
-    const [revisionRows, dossierItemRows] = await Promise.all([
+    const [revisionRows, dossierItemRows, shareRows, fileRows] = await Promise.all([
       documentRows.length ? db.select().from(documentRevisions).where(inArray(documentRevisions.documentId, documentRows.map(({ id }) => id))).orderBy(asc(documentRevisions.createdAt)) : [],
       dossierRows.length ? db.select().from(personalDossierItems).where(inArray(personalDossierItems.dossierId, dossierRows.map(({ id }) => id))).orderBy(asc(personalDossierItems.createdAt)) : [],
+      documentRows.length ? db.select().from(personalDocumentShares).where(inArray(personalDocumentShares.documentId, documentRows.map(({ id }) => id))).orderBy(asc(personalDocumentShares.createdAt)) : [],
+      dossierRows.length ? db.select().from(storedFiles).where(and(
+        eq(storedFiles.ownerUserId, user.id), inArray(storedFiles.dossierId, dossierRows.map(({ id }) => id)),
+      )).orderBy(asc(storedFiles.createdAt)) : [],
     ]);
+    const shareEvents = shareRows.length ? await db.select().from(personalDocumentShareEvents)
+      .where(inArray(personalDocumentShareEvents.shareId, shareRows.map(({ id }) => id)))
+      .orderBy(asc(personalDocumentShareEvents.createdAt)) : [];
+    const fileById = new Map(fileRows.map((file) => [file.id, file]));
     const exported = {
       generatedAt: new Date().toISOString(),
       account: { id: user.id, email: user.email, preferredLocale: user.preferredLocale },
@@ -45,6 +56,11 @@ export async function GET() {
           revision: revision.revision, createdAt: revision.createdAt,
           content: decryptDocumentData<DocumentContent>(revision.contentCiphertext, revision.encryptionKeyVersion, user.id, document.id, revision.revision),
         })),
+        shares: shareRows.filter((share) => share.documentId === document.id).map((share) => ({
+          id: share.id, revision: share.revision, permission: share.permission, createdAt: share.createdAt,
+          expiresAt: share.expiresAt, revokedAt: share.revokedAt,
+          events: shareEvents.filter((event) => event.shareId === share.id).map((event) => ({ type: event.eventType, createdAt: event.createdAt })),
+        })),
       })),
       dossiers: dossierRows.map((dossier) => ({
         id: dossier.id, status: dossier.status, createdAt: dossier.createdAt, updatedAt: dossier.updatedAt,
@@ -53,6 +69,12 @@ export async function GET() {
           id: item.id, linkedDocumentId: item.linkedDocumentId, kind: item.kind, status: item.status,
           required: item.required === 1, createdAt: item.createdAt, updatedAt: item.updatedAt,
           label: decryptDossierData<string>(item.labelCiphertext, item.encryptionKeyVersion, user.id, item.id),
+          attachment: item.storedFileId && fileById.has(item.storedFileId) ? {
+            mimeType: fileById.get(item.storedFileId)!.mimeType,
+            byteSize: fileById.get(item.storedFileId)!.byteSize,
+            scanStatus: fileById.get(item.storedFileId)!.scanStatus,
+            createdAt: fileById.get(item.storedFileId)!.createdAt,
+          } : null,
         })),
       })),
     };

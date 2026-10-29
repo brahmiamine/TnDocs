@@ -4,6 +4,7 @@ import { database } from "@/platform/database/client";
 import { catalogTemplateCategories, catalogTemplateSources, catalogTemplateTranslations, catalogTemplateVersions, catalogTemplates } from "@/platform/database/schema";
 import { requireSameOrigin } from "@/modules/identity/http";
 import { userHasRole } from "@/modules/identity/authorization";
+import { parseFormSchema } from "@/modules/documents/form-schema";
 
 export async function POST(request: Request, { params }: { params: Promise<{ templateId: string }> }) {
   const originError = requireSameOrigin(request);
@@ -27,6 +28,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
   if (categories.length === 0) return NextResponse.json({ code: "PUBLISH_BLOCKED", message: "At least one catalog category is required." }, { status: 409 });
   if (template.documentType !== "official" && !version.documentContent) {
     return NextResponse.json({ code: "PUBLISH_BLOCKED", message: "Document content is required for this template type." }, { status: 409 });
+  }
+  if (version.formSchema && !parseFormSchema(version.formSchema)) {
+    return NextResponse.json({ code: "PUBLISH_BLOCKED", message: "The form schema contains unsupported fields or rules." }, { status: 409 });
   }
 
   const sources = await database.select().from(catalogTemplateSources).where(eq(catalogTemplateSources.versionId, version.id));

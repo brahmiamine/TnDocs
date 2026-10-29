@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
-import { documentRevisions, personalDocuments } from "@/platform/database/schema";
+import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
-import { encryptDocumentData } from "@/modules/documents/crypto";
+import { decryptDocumentData, encryptDocumentData } from "@/modules/documents/crypto";
 import { saveRevisionSchema } from "@/modules/documents/schema";
+import { parseFormSchema, validateFormAnswers } from "@/modules/documents/form-schema";
 
 export async function POST(request: Request, { params }: { params: Promise<{ documentId: string }> }) {
   const originError = requireSameOrigin(request);
@@ -21,6 +22,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
   const { expectedRevision, title, content } = parsed.data;
   const nextRevision = expectedRevision + 1;
   try {
+    const [document] = await db.select().from(personalDocuments).where(and(eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id))).limit(1);
+    if (!document || document.status === "trash") return NextResponse.json({ code: "NOT_FOUND", message: "Document not found." }, { status: 404 });
+    const [template] = document.templateId ? await db.select({ documentType: catalogTemplates.documentType }).from(catalogTemplates).where(eq(catalogTemplates.id, document.templateId)).limit(1) : [undefined];
+    const [version] = document.templateVersionId ? await db.select({ formSchema: catalogTemplateVersions.formSchema }).from(catalogTemplateVersions).where(eq(catalogTemplateVersions.id, document.templateVersionId)).limit(1) : [undefined];
+    const schema = parseFormSchema(version?.formSchema ?? null);
+    if (version?.formSchema && !schema) return NextResponse.json({ code: "TEMPLATE_SCHEMA_INVALID", message: "The saved template form is unavailable." }, { status: 409 });
+    if (!validateFormAnswers(schema, content.answers)) return NextResponse.json({ code: "INVALID_ANSWERS", message: "Complete the required fields and use only the available options." }, { status: 400 });
+    if (template?.documentType !== "editable") {
+      const [current] = await db.select().from(documentRevisions).where(and(eq(documentRevisions.documentId, documentId), eq(documentRevisions.revision, expectedRevision))).limit(1);
+      if (!current) return NextResponse.json({ code: "REVISION_CONFLICT", message: "Reload the latest document revision before saving." }, { status: 409 });
+      const currentContent = decryptDocumentData<{ body: string }>(current.contentCiphertext, current.encryptionKeyVersion, user.id, documentId, expectedRevision);
+      if (content.body !== currentContent.body) return NextResponse.json({ code: "READ_ONLY_CONTENT", message: "Text editing is only available for editable templates." }, { status: 400 });
+    }
     const encrypted = encryptDocumentData(content, user.id, documentId, nextRevision);
     const saved = await db.transaction(async (tx) => {
       const changed = await tx.update(personalDocuments).set({ title, currentRevision: nextRevision }).where(and(

@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
-import { catalogTemplateTranslations, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
+import { catalogTemplateTranslations, catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { encryptDocumentData } from "@/modules/documents/crypto";
 import { createDocumentSchema, type DocumentContent } from "@/modules/documents/schema";
+import { parseFormSchema } from "@/modules/documents/form-schema";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -33,6 +34,11 @@ export async function POST(request: Request) {
   const [template] = await db.select().from(catalogTemplates).where(and(eq(catalogTemplates.id, parsed.data.templateId), eq(catalogTemplates.status, "published"))).limit(1);
   if (!template?.publishedVersionId) return NextResponse.json({ code: "NOT_FOUND", message: "Published template not found." }, { status: 404 });
   if (template.documentType === "official") return NextResponse.json({ code: "OFFICIAL_SOURCE_ONLY", message: "Official documents must be completed using the original form from its source." }, { status: 409 });
+  const [version] = await db.select({ formSchema: catalogTemplateVersions.formSchema }).from(catalogTemplateVersions)
+    .where(and(eq(catalogTemplateVersions.id, template.publishedVersionId), eq(catalogTemplateVersions.status, "published"))).limit(1);
+  if (!version) return NextResponse.json({ code: "TEMPLATE_VERSION_UNAVAILABLE", message: "The published template version is unavailable." }, { status: 409 });
+  const parsedFormSchema = parseFormSchema(version.formSchema);
+  if (version.formSchema && !parsedFormSchema) return NextResponse.json({ code: "TEMPLATE_SCHEMA_INVALID", message: "This published template has an invalid form schema." }, { status: 409 });
   const [translation] = await db.select().from(catalogTemplateTranslations).where(and(
     eq(catalogTemplateTranslations.versionId, template.publishedVersionId), eq(catalogTemplateTranslations.locale, parsed.data.locale),
   )).limit(1);
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
         encryptionKeyVersion: encrypted.keyVersion, createdBy: user.id,
       });
     });
-    return NextResponse.json({ id: documentId, title: translation.title, revision: 1 }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ id: documentId, title: translation.title, revision: 1, formSchema: parsedFormSchema }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ code: "DOCUMENT_UNAVAILABLE", message: "The draft could not be created. Check the encryption configuration." }, { status: 503 });
   }

@@ -16,13 +16,15 @@ export async function GET(request: Request) {
   const parameters = new URL(request.url).searchParams;
   const includeTrash = parameters.get("includeTrash") === "true";
   const archived = parameters.get("status") === "archived";
+  const favorites = parameters.get("favorites") === "true";
   const documents = await database.select({
     id: personalDocuments.id, templateId: personalDocuments.templateId, templateVersionId: personalDocuments.templateVersionId,
-    title: personalDocuments.title, status: personalDocuments.status, currentRevision: personalDocuments.currentRevision,
+    title: personalDocuments.title, status: personalDocuments.status, isFavorite: personalDocuments.isFavorite, currentRevision: personalDocuments.currentRevision,
     createdAt: personalDocuments.createdAt, updatedAt: personalDocuments.updatedAt,
   }).from(personalDocuments).where(and(
     eq(personalDocuments.ownerUserId, user.id),
     includeTrash ? eq(personalDocuments.status, "trash") : archived ? eq(personalDocuments.status, "archived") : and(ne(personalDocuments.status, "trash"), ne(personalDocuments.status, "archived")),
+    favorites ? eq(personalDocuments.isFavorite, 1) : undefined,
   )).orderBy(desc(personalDocuments.updatedAt)).limit(100);
   return NextResponse.json({ documents }, { headers: { "Cache-Control": "private, no-store" } });
 }

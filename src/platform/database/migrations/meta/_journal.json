@@ -57,6 +57,13 @@
       "when": 1793279308114,
       "tag": "0007_encrypted_dossier_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1793281202502,
+      "tag": "0008_document_favorites",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
@@ -55,9 +55,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ do
   if (!user) return NextResponse.json({ code: "UNAUTHENTICATED", message: "Authentication required." }, { status: 401 });
   const db = database;
   if (!db) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Document service is not configured." }, { status: 503 });
-  const parsed = z.object({ action: z.enum(["restore", "archive", "unarchive"]) }).safeParse(await readJsonBody(request, 8 * 1024));
+  const parsed = z.object({ action: z.enum(["restore", "archive", "unarchive", "favorite", "unfavorite"]) }).safeParse(await readJsonBody(request, 8 * 1024));
   if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT", message: "A supported document action is required." }, { status: 400 });
   const { documentId } = await params;
+  if (parsed.data.action === "favorite" || parsed.data.action === "unfavorite") {
+    const result = await db.update(personalDocuments).set({ isFavorite: parsed.data.action === "favorite" ? 1 : 0 }).where(and(
+      eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id), ne(personalDocuments.status, "trash"),
+    ));
+    if (!result[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND", message: "Document not found." }, { status: 404 });
+    return NextResponse.json({ id: documentId, isFavorite: parsed.data.action === "favorite" }, { headers: { "Cache-Control": "private, no-store" } });
+  }
   const allowedStatuses = parsed.data.action === "restore" ? ["trash"] as const
     : parsed.data.action === "archive" ? ["draft", "finalized"] as const : ["archived"] as const;
   const status = parsed.data.action === "restore" || parsed.data.action === "unarchive" ? "draft" : "archived";

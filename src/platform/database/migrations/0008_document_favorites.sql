@@ -1,0 +1,2 @@
+ALTER TABLE `personal_documents` ADD `is_favorite` int DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX `personal_documents_owner_favorite_idx` ON `personal_documents` (`owner_user_id`,`is_favorite`,`updated_at`);

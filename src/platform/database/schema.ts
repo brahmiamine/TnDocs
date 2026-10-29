@@ -67,10 +67,11 @@ export const personalDocuments = mysqlTable("personal_documents", {
   templateVersionId: id("template_version_id"),
   title: varchar("title", { length: 240 }).notNull(),
   status: mysqlEnum("status", ["draft", "finalized", "archived", "trash"]).notNull().default("draft"),
+  isFavorite: int("is_favorite").notNull().default(0),
   currentRevision: int("current_revision").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-}, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_template_id_idx").on(table.templateId)]);
+}, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_owner_favorite_idx").on(table.ownerUserId, table.isFavorite, table.updatedAt), index("personal_documents_template_id_idx").on(table.templateId)]);
 
 export const personalDocumentShares = mysqlTable("personal_document_shares", {
   id: id("id").primaryKey(),

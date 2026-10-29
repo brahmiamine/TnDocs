@@ -82,6 +82,21 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     return () => window.clearTimeout(timer);
   }, [title, body, dirty, save]);
 
+  useEffect(() => {
+    const onOnline = () => { if (dirtyRef.current) void save(); };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [save]);
+
   function markDirty() { dirtyRef.current = true; setDirty(true); }
   function updateTitle(value: string) { latest.current = { ...latest.current, title: value }; setTitle(value); markDirty(); }
   function updateBody(value: string) { latest.current = { ...latest.current, body: value }; setBody(value); markDirty(); }

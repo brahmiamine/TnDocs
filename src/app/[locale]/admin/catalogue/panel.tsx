@@ -6,8 +6,8 @@ type Translation = { locale: "fr" | "ar"; title: string; summary: string; instru
 type Item = { id: string; status: string; documentType: string; latestVersion: { version: number; status: string } | null; translations: Translation[] };
 
 const labels = {
-  fr: { load: "Actualiser", create: "Créer le brouillon", newVersion: "Enregistrer une nouvelle version", review: "Soumettre à la revue", publish: "Publier", loading: "Chargement…", saved: "Enregistré.", error: "Une erreur est survenue.", type: "Type", category: "Catégories (slugs séparés par des virgules)", frTitle: "Titre français", frSummary: "Résumé français", frInstructions: "Instructions en français", frBody: "Texte français", arTitle: "العنوان بالعربية", arSummary: "الملخص بالعربية", arInstructions: "التعليمات بالعربية", arBody: "النص بالعربية", content: "Contenu du document (JSON)", form: "Schéma du formulaire (JSON, facultatif)", sources: "Sources (JSON)", sourcesHint: "Renseignez uniquement des sources réellement vérifiées. Pour un document réutilisable, confirmez les droits.", status: "État", version: "Version", none: "Aucun contenu éditorial." },
-  ar: { load: "تحديث", create: "إنشاء مسودة", newVersion: "حفظ نسخة جديدة", review: "إرسال للمراجعة", publish: "نشر", loading: "جارٍ التحميل…", saved: "تم الحفظ.", error: "حدث خطأ.", type: "النوع", category: "التصنيفات (معرّفات مفصولة بفواصل)", frTitle: "العنوان بالفرنسية", frSummary: "الملخص بالفرنسية", frInstructions: "التعليمات بالفرنسية", frBody: "النص بالفرنسية", arTitle: "العنوان بالعربية", arSummary: "الملخص بالعربية", arInstructions: "التعليمات بالعربية", arBody: "النص بالعربية", content: "محتوى الوثيقة (JSON)", form: "مخطط النموذج (JSON، اختياري)", sources: "المصادر (JSON)", sourcesHint: "أدخل المصادر التي تم التحقق منها فعلياً فقط، وأكد حقوق إعادة الاستخدام.", status: "الحالة", version: "النسخة", none: "لا يوجد محتوى تحريري." },
+  fr: { load: "Actualiser", reindex: "Reconstruire l’index de recherche", create: "Créer le brouillon", newVersion: "Enregistrer une nouvelle version", review: "Soumettre à la revue", publish: "Publier", loading: "Chargement…", saved: "Enregistré.", error: "Une erreur est survenue.", type: "Type", category: "Catégories (slugs séparés par des virgules)", frTitle: "Titre français", frSummary: "Résumé français", frInstructions: "Instructions en français", frBody: "Texte français", arTitle: "العنوان بالعربية", arSummary: "الملخص بالعربية", arInstructions: "التعليمات بالعربية", arBody: "النص بالعربية", content: "Contenu du document (JSON)", form: "Schéma du formulaire (JSON, facultatif)", sources: "Sources (JSON)", sourcesHint: "Renseignez uniquement des sources réellement vérifiées. Pour un document réutilisable, confirmez les droits.", status: "État", version: "Version", none: "Aucun contenu éditorial." },
+  ar: { load: "تحديث", reindex: "إعادة بناء فهرس البحث", create: "إنشاء مسودة", newVersion: "حفظ نسخة جديدة", review: "إرسال للمراجعة", publish: "نشر", loading: "جارٍ التحميل…", saved: "تم الحفظ.", error: "حدث خطأ.", type: "النوع", category: "التصنيفات (معرّفات مفصولة بفواصل)", frTitle: "العنوان بالفرنسية", frSummary: "الملخص بالفرنسية", frInstructions: "التعليمات بالفرنسية", frBody: "النص بالفرنسية", arTitle: "العنوان بالعربية", arSummary: "الملخص بالعربية", arInstructions: "التعليمات بالعربية", arBody: "النص بالعربية", content: "محتوى الوثيقة (JSON)", form: "مخطط النموذج (JSON، اختياري)", sources: "المصادر (JSON)", sourcesHint: "أدخل المصادر التي تم التحقق منها فعلياً فقط، وأكد حقوق إعادة الاستخدام.", status: "الحالة", version: "النسخة", none: "لا يوجد محتوى تحريري." },
 };
 
 export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: boolean }) {
@@ -64,6 +64,15 @@ export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: b
     finally { setBusy(false); }
   }
 
+  async function reindex() {
+    setBusy(true); setMessage("");
+    try {
+      const result = await send("/api/v1/admin/catalog/reindex", "POST");
+      setMessage(`${t.saved} ${result.indexed} ${locale === "ar" ? "وثيقة مفهرسة" : "documents indexés"}.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : t.error); }
+    finally { setBusy(false); }
+  }
+
   return <div className="admin-catalog-layout">
     <form className="auth-card admin-editor" onSubmit={submit}>
       <div className="eyebrow">{templateId ? t.newVersion : t.create}</div>
@@ -81,7 +90,7 @@ export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: b
       <button className="button auth-submit" disabled={busy}>{busy ? t.loading : templateId ? t.newVersion : t.create}</button>
       {templateId && <button type="button" className="button button-quiet" onClick={() => setTemplateId("")}>Annuler</button>}
     </form>
-    <section className="admin-list"><div className="admin-list-heading"><div><div className="eyebrow">{t.status}</div><h2>Contenus</h2></div><button className="button button-quiet" type="button" onClick={() => void refresh()}>{t.load}</button></div>
+    <section className="admin-list"><div className="admin-list-heading"><div><div className="eyebrow">{t.status}</div><h2>Contenus</h2></div><div className="admin-item-actions">{isAdmin && <button className="button button-quiet" type="button" disabled={busy} onClick={() => void reindex()}>{t.reindex}</button>}<button className="button button-quiet" type="button" onClick={() => void refresh()}>{t.load}</button></div></div>
       {items.length === 0 ? <div className="empty-state"><p>{t.none}</p></div> : items.map((item) => <article className="admin-item" key={item.id}><div><span className="status-badge">{item.status}</span><h3>{item.translations[0]?.title ?? item.id}</h3><p>{item.documentType} · {t.version} {item.latestVersion?.version ?? "—"} · {item.latestVersion?.status ?? "—"}</p></div><div className="admin-item-actions"><button type="button" className="text-link" onClick={() => setTemplateId(item.id)}>{t.newVersion}</button>{item.latestVersion?.status === "draft" && <button type="button" className="text-link" disabled={busy} onClick={() => void action(item.id, "review")}>{t.review}</button>}{isAdmin && item.latestVersion?.status === "in_review" && <button type="button" className="text-link" disabled={busy} onClick={() => void action(item.id, "publish")}>{t.publish}</button>}</div></article>)}
     </section>
   </div>;

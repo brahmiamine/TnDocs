@@ -4,6 +4,7 @@ import { database } from "@/platform/database/client";
 import { catalogTemplates } from "@/platform/database/schema";
 import { requireSameOrigin } from "@/modules/identity/http";
 import { userHasRole } from "@/modules/identity/authorization";
+import { removeTemplateFromSearch } from "@/modules/catalog/search-index";
 
 export async function POST(request: Request, { params }: { params: Promise<{ templateId: string }> }) {
   const originError = requireSameOrigin(request);
@@ -16,5 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
     eq(catalogTemplates.id, templateId), eq(catalogTemplates.status, "published"),
   ));
   if (!updated[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND", message: "Published template not found." }, { status: 404 });
-  return NextResponse.json({ id: templateId, status: "archived" }, { headers: { "Cache-Control": "no-store" } });
+  let searchIndexSynced = false;
+  try { searchIndexSynced = await removeTemplateFromSearch(templateId); } catch { searchIndexSynced = false; }
+  return NextResponse.json({ id: templateId, status: "archived", searchIndexSynced }, { headers: { "Cache-Control": "no-store" } });
 }

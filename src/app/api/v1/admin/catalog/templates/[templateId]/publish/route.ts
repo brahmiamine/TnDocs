@@ -5,6 +5,7 @@ import { catalogTemplateCategories, catalogTemplateSources, catalogTemplateTrans
 import { requireSameOrigin } from "@/modules/identity/http";
 import { userHasRole } from "@/modules/identity/authorization";
 import { parseFormSchema } from "@/modules/documents/form-schema";
+import { syncPublishedTemplateToSearch } from "@/modules/catalog/search-index";
 
 export async function POST(request: Request, { params }: { params: Promise<{ templateId: string }> }) {
   const originError = requireSameOrigin(request);
@@ -51,5 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
     return true;
   });
   if (!changed) return NextResponse.json({ code: "INVALID_STATE", message: "The template changed while publication was being processed." }, { status: 409 });
-  return NextResponse.json({ id: templateId, versionId: version.id, status: "published" }, { headers: { "Cache-Control": "no-store" } });
+  let searchIndexSynced = false;
+  try { searchIndexSynced = await syncPublishedTemplateToSearch(templateId); } catch { searchIndexSynced = false; }
+  return NextResponse.json({ id: templateId, versionId: version.id, status: "published", searchIndexSynced }, { headers: { "Cache-Control": "no-store" } });
 }

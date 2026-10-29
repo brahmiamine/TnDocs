@@ -9,6 +9,7 @@ import {
   catalogTemplateVersions,
   catalogTemplates,
 } from "@/platform/database/schema";
+import { searchPublishedTemplateIds } from "./search-index";
 
 export async function getPublicCategories(locale: "fr" | "ar") {
   if (!database) return [];
@@ -29,7 +30,13 @@ export async function getPublicCategories(locale: "fr" | "ar") {
 export async function getPublicTemplates(locale: "fr" | "ar", options: { category?: string; query?: string; limit?: number } = {}) {
   if (!database) return [];
   const clauses = [eq(catalogTemplates.status, "published")];
-  if (options.query) clauses.push(like(catalogTemplateTranslations.title, `%${options.query}%`));
+  const searchIds = options.query ? await searchPublishedTemplateIds(options.query, locale, options.category) : null;
+  if (searchIds !== null) {
+    if (searchIds.length === 0) return [];
+    clauses.push(inArray(catalogTemplates.id, searchIds));
+  } else if (options.query) {
+    clauses.push(like(catalogTemplateTranslations.title, `%${options.query}%`));
+  }
   if (options.category) {
     const [category] = await database.select({ id: catalogCategories.id }).from(catalogCategories).where(and(
       eq(catalogCategories.slug, options.category), eq(catalogCategories.active, 1),
@@ -72,7 +79,7 @@ export async function getPublicTemplates(locale: "fr" | "ar", options: { categor
   const sourceMap = new Map<string, typeof sourceRows>();
   for (const source of sourceRows) sourceMap.set(source.versionId, [...(sourceMap.get(source.versionId) ?? []), source]);
 
-  return rows.map((row) => ({
+  const results = rows.map((row) => ({
     ...row,
     formSchema: row.documentType === "editable" ? row.formSchema : null,
     documentContent: row.documentType === "official" ? null : row.documentContent,
@@ -81,6 +88,9 @@ export async function getPublicTemplates(locale: "fr" | "ar", options: { categor
       name: source.name, url: source.url, official: source.official, checkedAt: source.checkedAt,
     })),
   }));
+  if (!searchIds) return results;
+  const byId = new Map(results.map((row) => [row.id, row]));
+  return searchIds.map((id) => byId.get(id)).filter((row): row is (typeof results)[number] => Boolean(row));
 }
 
 export async function getPublicTemplate(templateId: string, locale: "fr" | "ar") {

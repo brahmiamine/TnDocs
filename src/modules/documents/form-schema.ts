@@ -38,12 +38,16 @@ export function validateFormAnswers(schema: FormSchema | null, answers: Record<s
   if (Object.keys(answers).some((key) => !fields.has(key))) return false;
   return schema.fields.every((field) => {
     const answer = answers[field.key];
-    if (field.kind === "checkbox") return answer === undefined || typeof answer === "boolean";
+    if (field.kind === "checkbox") return answer === undefined ? !field.required : typeof answer === "boolean" && (!field.required || answer);
     if (answer === undefined || answer === "") return !field.required;
     if (typeof answer !== "string") return false;
     if (field.kind === "select") return field.options?.some((option) => option.value === answer) ?? false;
     if (field.kind === "number") return /^-?\d+(?:[.,]\d+)?$/.test(answer);
-    if (field.kind === "date") return /^\d{4}-\d{2}-\d{2}$/.test(answer) && !Number.isNaN(Date.parse(`${answer}T00:00:00Z`));
+    if (field.kind === "date") {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(answer)) return false;
+      const date = new Date(`${answer}T00:00:00Z`);
+      return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === answer;
+    }
     return answer.length <= (field.maxLength ?? 2000);
   });
 }

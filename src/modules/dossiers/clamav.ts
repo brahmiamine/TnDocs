@@ -90,3 +90,29 @@ export function detectAllowedMimeType(data: Buffer): "application/pdf" | "image/
   if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return "image/jpeg";
   return null;
 }
+
+export function getImageDimensions(data: Buffer, mimeType: "image/jpeg" | "image/png") {
+  if (mimeType === "image/png") {
+    if (data.length < 24) return null;
+    return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+  }
+  let offset = 2;
+  const startOfFrame = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+  while (offset + 4 < data.length) {
+    while (offset < data.length && data[offset] !== 0xff) offset += 1;
+    while (offset < data.length && data[offset] === 0xff) offset += 1;
+    if (offset >= data.length) return null;
+    const marker = data[offset++];
+    if (marker === 0xd9 || marker === 0xda) return null;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > data.length) return null;
+    const segmentLength = data.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > data.length) return null;
+    if (startOfFrame.has(marker)) {
+      if (segmentLength < 7) return null;
+      return { height: data.readUInt16BE(offset + 3), width: data.readUInt16BE(offset + 5) };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}

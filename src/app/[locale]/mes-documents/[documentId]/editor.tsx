@@ -6,6 +6,7 @@ import type { FormSchema } from "@/modules/documents/form-schema";
 import { renderTemplateText } from "@/modules/documents/form-schema";
 
 type EditorData = { id: string; title: string; status: string; documentType: string; revision: number; formSchema: FormSchema | null; content: { locale: "fr" | "ar"; body: string; answers: Record<string, unknown> } };
+type HistoryItem = { revision: number; createdAt: string };
 
 export function DocumentEditor({ documentId, locale }: { documentId: string; locale: string }) {
   const isArabic = locale === "ar";
@@ -17,6 +18,8 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
   const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState(isArabic ? "جارٍ التحميل…" : "Chargement…");
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const latest = useRef({ title: "", body: "", answers: {} as Record<string, unknown> });
   const revisionRef = useRef(0);
   const dirtyRef = useRef(false);
@@ -79,6 +82,32 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     latest.current = { ...latest.current, answers: next }; setAnswers(next); markDirty();
   }
 
+  async function toggleHistory() {
+    if (!showHistory) {
+      const response = await fetch(`/api/v1/me/documents/${documentId}/revisions`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) { setError(result.message ?? "Erreur"); return; }
+      setHistory(result.revisions as HistoryItem[]);
+    }
+    setShowHistory((value) => !value);
+  }
+
+  async function restore(sourceRevision: number) {
+    if (!window.confirm(isArabic ? `استعادة النسخة ${sourceRevision}؟` : `Restaurer la version ${sourceRevision} dans une nouvelle révision ?`)) return;
+    const response = await fetch(`/api/v1/me/documents/${documentId}/revisions/restore`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceRevision, expectedRevision: revisionRef.current }),
+    });
+    const result = await response.json();
+    if (!response.ok) { setError(result.message ?? "Erreur"); return; }
+    const content = result.content as EditorData["content"] & { title: string };
+    latest.current = { title: content.title, body: content.body, answers: content.answers };
+    setTitle(content.title); setBody(content.body); setAnswers(content.answers);
+    revisionRef.current = result.revision; setRevision(result.revision); dirtyRef.current = false; setDirty(false);
+    setMessage(isArabic ? "تمت الاستعادة كنسخة جديدة" : "Version restaurée dans une nouvelle révision"); setError("");
+    setShowHistory(false);
+  }
+
   function renderField(field: NonNullable<FormSchema>["fields"][number]) {
     const label = field.label[isArabic ? "ar" : "fr"];
     if (field.kind === "checkbox") return <label className="consent-check" key={field.key}><input type="checkbox" checked={answers[field.key] === true} onChange={(event) => updateAnswer(field.key, event.target.checked)} />{label}{field.required ? " *" : ""}</label>;
@@ -91,7 +120,8 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     <Link className="back-link" href={`/${locale}/mes-documents`}>← {isArabic ? "العودة إلى وثائقي" : "Retour à mes documents"}</Link>
     {error && <p className="form-message form-error" role="alert">{error}</p>}
     {!document ? <div className="empty-state"><p>{message}</p></div> : <>
-      <div className="document-editor-heading"><div><div className="eyebrow">{isArabic ? "مسودة خاصة" : "BROUILLON PRIVÉ"}</div><h1>{isArabic ? "محرر الوثيقة" : "Éditeur de document"}</h1></div><div className="document-editor-actions"><div className="document-save-state" role="status">{dirty ? (isArabic ? "تعديلات غير محفوظة" : "Modifications en cours…") : message} · {isArabic ? `النسخة ${revision}` : `Version ${revision}`}</div><button className="button button-quiet" type="button" onClick={() => window.print()}>{isArabic ? "طباعة / PDF" : "Imprimer / PDF"}</button><a className={`button ${dirty ? "button-disabled" : ""}`} aria-disabled={dirty} onClick={(event) => { if (dirty) event.preventDefault(); }} href={`/api/v1/me/documents/${documentId}/exports/docx`}>{isArabic ? "تنزيل Word" : "Télécharger Word"}</a></div></div>
+      <div className="document-editor-heading"><div><div className="eyebrow">{isArabic ? "مسودة خاصة" : "BROUILLON PRIVÉ"}</div><h1>{isArabic ? "محرر الوثيقة" : "Éditeur de document"}</h1></div><div className="document-editor-actions"><div className="document-save-state" role="status">{dirty ? (isArabic ? "تعديلات غير محفوظة" : "Modifications en cours…") : message} · {isArabic ? `النسخة ${revision}` : `Version ${revision}`}</div><button className="button button-quiet" type="button" onClick={() => void toggleHistory()}>{isArabic ? "السجل" : "Historique"}</button><button className="button button-quiet" type="button" onClick={() => window.print()}>{isArabic ? "طباعة / PDF" : "Imprimer / PDF"}</button><a className={`button ${dirty ? "button-disabled" : ""}`} aria-disabled={dirty} onClick={(event) => { if (dirty) event.preventDefault(); }} href={`/api/v1/me/documents/${documentId}/exports/docx`}>{isArabic ? "تنزيل Word" : "Télécharger Word"}</a></div></div>
+      {showHistory && <section className="revision-history"><h2>{isArabic ? "النسخ السابقة" : "Versions précédentes"}</h2>{history.map((item) => <article className="revision-row" key={item.revision}><span>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))}</span>{item.revision !== revision && <button className="text-link" type="button" onClick={() => void restore(item.revision)}>{isArabic ? "استعادة" : "Restaurer"}</button>}</article>)}</section>}
       <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields"><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" dir={isArabic ? "rtl" : "auto"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={isArabic ? "rtl" : "auto"} className="template-body">{renderTemplateText(body || (isArabic ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
     </>}
   </div>;

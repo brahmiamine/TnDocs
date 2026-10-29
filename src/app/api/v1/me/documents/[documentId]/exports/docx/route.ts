@@ -32,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ doc
     if (version?.formSchema && !schema) return NextResponse.json({ code: "DOCUMENT_UNAVAILABLE", message: "The document form schema is unavailable." }, { status: 503 });
     if (!validateFormAnswers(schema, content.answers)) return NextResponse.json({ code: "INVALID_ANSWERS", message: "Complete the required fields before exporting." }, { status: 409 });
     const body = renderTemplateText(content.body, content.answers);
-    const output = await renderDocumentDocx(document.title, body, content.locale);
+    const output = await renderDocumentDocx(content.title ?? document.title, body, content.locale);
     return new Response(new Uint8Array(output), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

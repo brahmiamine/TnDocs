@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   if (!translation) return NextResponse.json({ code: "LOCALE_UNAVAILABLE", message: "This template is not available in that language." }, { status: 409 });
 
   const documentId = randomUUID();
-  const content: DocumentContent = { locale: parsed.data.locale, body: translation.body, answers: {} };
+  const content: DocumentContent = { title: translation.title, locale: parsed.data.locale, body: translation.body, answers: {} };
   try {
     const encrypted = encryptDocumentData(content, user.id, documentId, 1);
     await db.transaction(async (tx) => {

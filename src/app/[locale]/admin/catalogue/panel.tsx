@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 type Translation = { locale: "fr" | "ar"; title: string; summary: string; instructions: string; body: string };
 type Item = { id: string; status: string; documentType: string; latestVersion: { version: number; status: string } | null; translations: Translation[] };
+type FormFieldDraft = { key: string; kind: "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "profile"; labelFr: string; labelAr: string; required: boolean; profileField: string; optionsText: string };
 
 const labels = {
   fr: { load: "Actualiser", reindex: "Reconstruire l’index de recherche", create: "Créer le brouillon", newVersion: "Enregistrer une nouvelle version", review: "Soumettre à la revue", publish: "Publier", loading: "Chargement…", saved: "Enregistré.", error: "Une erreur est survenue.", type: "Type", category: "Catégories (slugs séparés par des virgules)", frTitle: "Titre français", frSummary: "Résumé français", frInstructions: "Instructions en français", frBody: "Texte français", arTitle: "العنوان بالعربية", arSummary: "الملخص بالعربية", arInstructions: "التعليمات بالعربية", arBody: "النص بالعربية", content: "Contenu du document (JSON)", form: "Schéma du formulaire (JSON, facultatif)", sources: "Sources (JSON)", sourcesHint: "Renseignez uniquement des sources réellement vérifiées. Pour un document réutilisable, confirmez les droits.", status: "État", version: "Version", none: "Aucun contenu éditorial." },
@@ -13,6 +14,7 @@ const labels = {
 export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: boolean }) {
   const t = labels[locale as "fr" | "ar"];
   const [items, setItems] = useState<Item[]>([]);
+  const [schemaFields, setSchemaFields] = useState<FormFieldDraft[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,12 +49,18 @@ export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: b
       documentType: String(data.get("documentType")),
       categorySlugs: String(data.get("categorySlugs")).split(",").map((value) => value.trim()).filter(Boolean),
       translations: { fr: translation("fr"), ar: translation("ar") },
-      documentContent: parseJson("documentContent", undefined), formSchema: parseJson("formSchema", undefined), sources: parseJson("sources", []),
+      documentContent: parseJson("documentContent", undefined),
+      formSchema: schemaFields.length ? { schemaVersion: 1, fields: schemaFields.map((field) => ({
+        key: field.key, kind: field.kind, label: { fr: field.labelFr, ar: field.labelAr }, required: field.required,
+        ...(field.kind === "profile" ? { profileField: field.profileField } : {}),
+        ...(field.kind === "select" ? { options: field.optionsText.split("\n").map((line) => line.split("|").map((part) => part.trim())).filter((parts) => parts.some(Boolean)).map(([value, labelFr, labelAr]) => ({ value, label: { fr: labelFr, ar: labelAr } })) } : {}),
+      })) } : undefined,
+      sources: parseJson("sources", []),
     };
     try {
       if (templateId) await send(`/api/v1/admin/catalog/templates/${templateId}/versions`, "POST", payload);
       else await send("/api/v1/admin/catalog/templates", "POST", payload);
-      event.currentTarget.reset(); setTemplateId(""); setMessage(t.saved); await refresh();
+      event.currentTarget.reset(); setTemplateId(""); setSchemaFields([]); setMessage(t.saved); await refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : t.error); }
     finally { setBusy(false); }
   }
@@ -84,7 +92,7 @@ export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: b
         </fieldset>)}
       </div>
       <label>{t.content}<textarea name="documentContent" rows={4} placeholder={'{"sections":[]}'} /></label>
-      <label>{t.form}<textarea name="formSchema" rows={3} placeholder={'{"fields":[]}'} /></label>
+      <FormSchemaBuilder locale={locale} fields={schemaFields} onChange={setSchemaFields} />
       <label>{t.sources}<textarea name="sources" rows={5} defaultValue={'[]'} /></label><p className="form-hint">{t.sourcesHint}</p>
       {message && <p className="form-message" role="status">{message}</p>}
       <button className="button auth-submit" disabled={busy}>{busy ? t.loading : templateId ? t.newVersion : t.create}</button>
@@ -94,4 +102,19 @@ export function CatalogueAdmin({ locale, isAdmin }: { locale: string; isAdmin: b
       {items.length === 0 ? <div className="empty-state"><p>{t.none}</p></div> : items.map((item) => <article className="admin-item" key={item.id}><div><span className="status-badge">{item.status}</span><h3>{item.translations[0]?.title ?? item.id}</h3><p>{item.documentType} · {t.version} {item.latestVersion?.version ?? "—"} · {item.latestVersion?.status ?? "—"}</p></div><div className="admin-item-actions"><button type="button" className="text-link" onClick={() => setTemplateId(item.id)}>{t.newVersion}</button>{item.latestVersion?.status === "draft" && <button type="button" className="text-link" disabled={busy} onClick={() => void action(item.id, "review")}>{t.review}</button>}{isAdmin && item.latestVersion?.status === "in_review" && <button type="button" className="text-link" disabled={busy} onClick={() => void action(item.id, "publish")}>{t.publish}</button>}</div></article>)}
     </section>
   </div>;
+}
+
+function FormSchemaBuilder({ locale, fields, onChange }: { locale: string; fields: FormFieldDraft[]; onChange: (fields: FormFieldDraft[]) => void }) {
+  const isArabic = locale === "ar";
+  const titles = isArabic ? { heading: "حقول النموذج", add: "إضافة حقل", key: "مفتاح الحقل", fr: "التسمية بالفرنسية", ar: "التسمية بالعربية", required: "مطلوب", kind: "النوع", profile: "حقل الملف الشخصي", options: "الخيارات: القيمة | الفرنسية | العربية", remove: "حذف", up: "أعلى", down: "أسفل" } : { heading: "Champs du formulaire", add: "Ajouter un champ", key: "Clé", fr: "Libellé français", ar: "Libellé arabe", required: "Obligatoire", kind: "Type", profile: "Champ du profil", options: "Options : valeur | français | arabe", remove: "Supprimer", up: "Monter", down: "Descendre" };
+  const profileFields = ["fullName", "arabicName", "latinName", "dateOfBirth", "nationality", "email", "phone", "addressTunisia", "addressAbroad", "profession", "maritalStatus", "cin", "passportNumber"];
+  function update(index: number, patch: Partial<FormFieldDraft>) { onChange(fields.map((field, current) => current === index ? { ...field, ...patch } : field)); }
+  function move(index: number, offset: number) {
+    const target = index + offset;
+    if (target < 0 || target >= fields.length) return;
+    const next = [...fields]; [next[index], next[target]] = [next[target], next[index]]; onChange(next);
+  }
+  return <section className="admin-schema-builder"><div className="admin-builder-heading"><h3>{titles.heading}</h3><button className="button button-quiet" type="button" onClick={() => onChange([...fields, { key: `field_${fields.length + 1}`, kind: "text", labelFr: "", labelAr: "", required: false, profileField: "fullName", optionsText: "" }])}>{titles.add}</button></div>
+    {fields.map((field, index) => <fieldset className="admin-schema-field" key={`${index}-${field.key}`}><div className="admin-schema-controls"><label>{titles.key}<input value={field.key} onChange={(event) => update(index, { key: event.target.value })} /></label><label>{titles.kind}<select value={field.kind} onChange={(event) => update(index, { kind: event.target.value as FormFieldDraft["kind"] })}>{["text", "textarea", "number", "date", "select", "checkbox", "profile"].map((kind) => <option value={kind} key={kind}>{kind}</option>)}</select></label></div><label>{titles.fr}<input value={field.labelFr} onChange={(event) => update(index, { labelFr: event.target.value })} /></label><label>{titles.ar}<input dir="rtl" value={field.labelAr} onChange={(event) => update(index, { labelAr: event.target.value })} /></label><label className="consent-check"><input type="checkbox" checked={field.required} onChange={(event) => update(index, { required: event.target.checked })} />{titles.required}</label>{field.kind === "profile" && <label>{titles.profile}<select value={field.profileField} onChange={(event) => update(index, { profileField: event.target.value })}>{profileFields.map((key) => <option value={key} key={key}>{key}</option>)}</select></label>}{field.kind === "select" && <label>{titles.options}<textarea rows={3} value={field.optionsText} onChange={(event) => update(index, { optionsText: event.target.value })} placeholder={'contract|Contrat|عقد'} /></label>}<div className="admin-builder-actions"><button type="button" className="text-link" onClick={() => move(index, -1)} disabled={index === 0}>{titles.up}</button><button type="button" className="text-link" onClick={() => move(index, 1)} disabled={index === fields.length - 1}>{titles.down}</button><button type="button" className="text-link destructive" onClick={() => onChange(fields.filter((_, current) => current !== index))}>{titles.remove}</button></div></fieldset>)}
+  </section>;
 }

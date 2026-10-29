@@ -173,6 +173,17 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .admin-languages { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
 .admin-languages fieldset { display: flex; min-width: 0; flex-direction: column; gap: 11px; padding: 13px; border: 1px solid var(--line); border-radius: 9px; }
 .admin-languages legend { padding-inline: 6px; color: var(--green); font-size: 11px; font-weight: 750; }
+.admin-schema-builder { padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: #fcfbf9; }
+.admin-builder-heading, .admin-builder-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 11px; }
+.admin-builder-heading { justify-content: space-between; margin-bottom: 12px; }
+.admin-builder-heading h3 { margin: 0; font-size: 14px; }
+.admin-schema-field { display: flex; flex-direction: column; gap: 11px; margin: 10px 0; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.admin-schema-field label { display: flex; flex-direction: column; gap: 6px; color: #555c54; font-size: 11px; font-weight: 700; }
+.admin-schema-field input, .admin-schema-field select, .admin-schema-field textarea { min-height: 39px; padding: 8px 10px; border: 1px solid #dcded8; border-radius: 7px; background: white; color: var(--ink); font: inherit; font-size: 12px; }
+.admin-schema-field .consent-check { flex-direction: row; align-items: center; }
+.admin-schema-field .consent-check input { min-height: 0; }
+.admin-schema-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.admin-builder-actions { justify-content: flex-end; }
 .admin-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
 .admin-list-heading h2 { margin: 7px 0 0; font-size: 24px; }
 .admin-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 11px; padding: 17px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }

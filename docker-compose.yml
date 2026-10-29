@@ -1,0 +1,65 @@
+name: tndocs
+
+services:
+  web:
+    build:
+      context: .
+      target: dependencies
+    command: npm run dev -- --hostname 0.0.0.0
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://tndocs:tndocs_dev_only@mariadb:3306/tndocs
+      MEILISEARCH_URL: http://meilisearch:7700
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: tndocs
+      MARIADB_USER: tndocs
+      MARIADB_PASSWORD: tndocs_dev_only
+      MARIADB_ROOT_PASSWORD: root_dev_only
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: dev_only_change_before_deployment
+    ports:
+      - "127.0.0.1:7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["staging"]
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
+
+volumes:
+  mariadb_data:
+  meilisearch_data:
+  node_modules:

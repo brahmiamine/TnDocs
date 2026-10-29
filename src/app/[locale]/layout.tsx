@@ -1,0 +1,20 @@
+import { notFound } from "next/navigation";
+import "../globals.css";
+
+export function generateStaticParams() {
+  return [{ locale: "fr" }, { locale: "ar" }];
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: Readonly<{ children: React.ReactNode; params: Promise<{ locale: string }> }>) {
+  const { locale } = await params;
+  if (locale !== "fr" && locale !== "ar") notFound();
+
+  return (
+    <div lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} className={locale === "ar" ? "arabic" : undefined}>
+      {children}
+    </div>
+  );
+}

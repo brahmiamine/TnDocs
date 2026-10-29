@@ -35,9 +35,12 @@ export async function POST(request: Request) {
 
   try {
     await database.insert(users).values({ id, email, passwordHash, preferredLocale: locale });
-  } catch {
+  } catch (error) {
     // Do not reveal whether the address is already registered.
-    return NextResponse.json({ status: "verification_sent" }, { status: 202 });
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ER_DUP_ENTRY") {
+      return NextResponse.json({ status: "verification_sent" }, { status: 202 });
+    }
+    return serviceUnavailable();
   }
 
   try {
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
     await sendVerificationEmail(email, verification.token, locale);
   } catch {
     await database.delete(users).where(eq(users.id, id));
-    return NextResponse.json({ code: "EMAIL_UNAVAILABLE", message: "Le service email est indisponible. Réessayez plus tard." }, { status: 503 });
+    return NextResponse.json({ status: "verification_sent" }, { status: 202 });
   }
 
   return NextResponse.json({ status: "verification_sent" }, { status: 202 });

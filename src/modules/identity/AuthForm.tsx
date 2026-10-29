@@ -49,6 +49,7 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
         <input id="email" name="email" type="email" autoComplete="email" required maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">{isArabic ? "كلمة المرور" : "Mot de passe"}</label>
         <input id="password" name="password" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required minLength={isRegister ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />
+        {!isRegister && <Link className="forgot-link" href={`/${locale}/mot-de-passe-oublie`}>{isArabic ? "نسيت كلمة المرور؟" : "Mot de passe oublié ?"}</Link>}
         {isRegister && <span className="form-hint">{isArabic ? "12 حرفاً على الأقل." : "12 caractères minimum."}</span>}
         {error && <p className="form-message form-error" role="alert">{error}</p>}
         {message && <p className="form-message form-success" role="status">{message}</p>}

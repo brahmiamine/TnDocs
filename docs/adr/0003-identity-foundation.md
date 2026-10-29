@@ -14,4 +14,4 @@ Les comptes contiennent des données personnelles et les permissions doivent êt
 - SMTP est une configuration unique; Mailpit est utilisé dans l'environnement local Compose.
 
 ## Conséquences
-Cette première livraison ne couvre pas encore Google OAuth, magic links, récupération du mot de passe, TOTP, codes de secours ni export/effacement des données. Les mots de passe et sessions ne doivent pas apparaître dans les journaux. Le pepper doit être injecté depuis un gestionnaire de secrets en production.
+Cette première livraison ne couvre pas encore Google OAuth, magic links, TOTP, codes de secours ni export/effacement des données. Les mots de passe et sessions ne doivent pas apparaître dans les journaux. Le pepper doit être injecté depuis un gestionnaire de secrets en production.

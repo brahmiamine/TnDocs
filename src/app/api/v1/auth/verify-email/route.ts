@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
 import { sessions, users, verificationChallenges } from "@/platform/database/schema";
 import { readJsonBody, requireSameOrigin, serviceUnavailable } from "@/modules/identity/http";
 import { createSecretToken, hashSecretToken } from "@/modules/identity/tokens";
 import { sessionLifetimeSeconds, setSessionCookie } from "@/modules/identity/service";
+import { isRateLimited } from "@/modules/identity/rate-limit";
 
 const inputSchema = z.object({ token: z.string().min(32).max(128) });
 
@@ -16,6 +18,11 @@ export async function POST(request: Request) {
   if (!database) return serviceUnavailable();
   const parsed = inputSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return NextResponse.json({ code: "INVALID_TOKEN", message: "Ce lien de vérification est invalide ou expiré." }, { status: 400 });
+  const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rateKey = createHash("sha256").update(`email-verification\0${address}`).digest("hex");
+  if (await isRateLimited(rateKey, 20, 15 * 60 * 1000)) {
+    return NextResponse.json({ code: "RATE_LIMITED", message: "Trop de tentatives. Réessayez dans quelques minutes." }, { status: 429, headers: { "Retry-After": "900" } });
+  }
 
   const [challenge] = await database.select().from(verificationChallenges).where(and(
     eq(verificationChallenges.tokenHash, hashSecretToken(parsed.data.token)),

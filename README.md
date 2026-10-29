@@ -8,7 +8,9 @@ Prérequis : Node.js 22+ et npm. Pour MariaDB et Meilisearch locaux, Docker Comp
 
 ```sh
 cp .env.example .env
+docker compose up -d mariadb meilisearch mailpit
 npm install
+npm run db:migrate
 npm run dev
 ```
 
@@ -25,7 +27,7 @@ MariaDB et Meilisearch n'écoutent que sur localhost. Le profil Caddy de prévis
 ## État du développement
 
 - Phase 1 en cours : socle Next.js, routes FR/AR, styles responsive, Compose local, schéma Drizzle initial et intégration continue.
-- Phase identité en cours : création de compte, confirmation email, connexion, session révocable et page « Mes documents » protégée.
+- Phase identité en cours : création de compte, confirmation email, connexion, récupération du mot de passe, session révocable et page « Mes documents » protégée.
 - Compose inclut Mailpit pour intercepter les emails de développement. Son interface est disponible sur `http://localhost:8025`.
 - Aucune démarche réelle n'est publiée à ce stade. Les modèles nécessitant vérification de sources et de droits seront ajoutés après revue.
 - Aucun secret, service d'IA ou déploiement du VPS n'est configuré par cette fondation.

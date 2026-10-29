@@ -29,9 +29,17 @@ export function decryptDocumentData<T>(encoded: string, keyVersion: string, owne
 }
 
 export function encryptDossierData(value: unknown, ownerId: string, recordId: string) {
-  return encryptDocumentData(value, ownerId, recordId, 0);
+  return encryptOwnerPrivateData(value, ownerId, recordId);
 }
 
 export function decryptDossierData<T>(encoded: string, keyVersion: string, ownerId: string, recordId: string): T {
+  return decryptOwnerPrivateData<T>(encoded, keyVersion, ownerId, recordId);
+}
+
+export function encryptOwnerPrivateData(value: unknown, ownerId: string, recordId: string) {
+  return encryptDocumentData(value, ownerId, recordId, 0);
+}
+
+export function decryptOwnerPrivateData<T>(encoded: string, keyVersion: string, ownerId: string, recordId: string): T {
   return decryptDocumentData<T>(encoded, keyVersion, ownerId, recordId, 0);
 }

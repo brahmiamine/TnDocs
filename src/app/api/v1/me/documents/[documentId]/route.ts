@@ -2,7 +2,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
-import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
+import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocumentFolders, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { decryptDocumentData } from "@/modules/documents/crypto";
@@ -55,9 +55,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ do
   if (!user) return NextResponse.json({ code: "UNAUTHENTICATED", message: "Authentication required." }, { status: 401 });
   const db = database;
   if (!db) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Document service is not configured." }, { status: 503 });
-  const parsed = z.object({ action: z.enum(["restore", "archive", "unarchive", "favorite", "unfavorite"]) }).safeParse(await readJsonBody(request, 8 * 1024));
+  const parsed = z.object({ action: z.enum(["restore", "archive", "unarchive", "favorite", "unfavorite", "move"]), folderId: z.string().uuid().nullable().optional() })
+    .refine((value) => value.action !== "move" || value.folderId !== undefined)
+    .safeParse(await readJsonBody(request, 8 * 1024));
   if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT", message: "A supported document action is required." }, { status: 400 });
   const { documentId } = await params;
+  if (parsed.data.action === "move") {
+    if (parsed.data.folderId) {
+      const [folder] = await db.select({ id: personalDocumentFolders.id }).from(personalDocumentFolders).where(and(
+        eq(personalDocumentFolders.id, parsed.data.folderId), eq(personalDocumentFolders.ownerUserId, user.id),
+      )).limit(1);
+      if (!folder) return NextResponse.json({ code: "NOT_FOUND" }, { status: 404 });
+    }
+    const result = await db.update(personalDocuments).set({ folderId: parsed.data.folderId }).where(and(
+      eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id), ne(personalDocuments.status, "trash"),
+    ));
+    if (!result[0].affectedRows) return NextResponse.json({ code: "NOT_FOUND" }, { status: 404 });
+    return NextResponse.json({ id: documentId, folderId: parsed.data.folderId }, { headers: { "Cache-Control": "private, no-store" } });
+  }
   if (parsed.data.action === "favorite" || parsed.data.action === "unfavorite") {
     const result = await db.update(personalDocuments).set({ isFavorite: parsed.data.action === "favorite" ? 1 : 0 }).where(and(
       eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id), ne(personalDocuments.status, "trash"),

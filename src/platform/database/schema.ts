@@ -60,9 +60,19 @@ export const personProfiles = mysqlTable("person_profiles", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("person_profiles_owner_id_idx").on(table.ownerUserId)]);
 
+export const personalDocumentFolders = mysqlTable("personal_document_folders", {
+  id: id("id").primaryKey(),
+  ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  nameCiphertext: text("name_ciphertext").notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("personal_document_folders_owner_updated_idx").on(table.ownerUserId, table.updatedAt)]);
+
 export const personalDocuments = mysqlTable("personal_documents", {
   id: id("id").primaryKey(),
   ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  folderId: id("folder_id").references(() => personalDocumentFolders.id, { onDelete: "set null" }),
   templateId: id("template_id").references(() => catalogTemplates.id, { onDelete: "set null" }),
   templateVersionId: id("template_version_id"),
   title: varchar("title", { length: 240 }).notNull(),
@@ -71,7 +81,7 @@ export const personalDocuments = mysqlTable("personal_documents", {
   currentRevision: int("current_revision").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-}, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_owner_favorite_idx").on(table.ownerUserId, table.isFavorite, table.updatedAt), index("personal_documents_template_id_idx").on(table.templateId)]);
+}, (table) => [index("personal_documents_owner_updated_idx").on(table.ownerUserId, table.updatedAt), index("personal_documents_owner_favorite_idx").on(table.ownerUserId, table.isFavorite, table.updatedAt), index("personal_documents_folder_idx").on(table.folderId), index("personal_documents_template_id_idx").on(table.templateId)]);
 
 export const personalDocumentShares = mysqlTable("personal_document_shares", {
   id: id("id").primaryKey(),

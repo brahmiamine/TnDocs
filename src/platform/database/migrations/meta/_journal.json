@@ -64,6 +64,13 @@
       "when": 1793281202502,
       "tag": "0008_document_favorites",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1793281384948,
+      "tag": "0009_personal_document_folders",
+      "breakpoints": true
     }
   ]
 }

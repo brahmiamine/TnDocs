@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { database } from "@/platform/database/client";
 import { catalogTemplateTranslations, catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
@@ -17,6 +18,8 @@ export async function GET(request: Request) {
   const includeTrash = parameters.get("includeTrash") === "true";
   const archived = parameters.get("status") === "archived";
   const favorites = parameters.get("favorites") === "true";
+  const folderId = parameters.get("folderId");
+  if (folderId && folderId !== "none" && !z.string().uuid().safeParse(folderId).success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
   const documents = await database.select({
     id: personalDocuments.id, templateId: personalDocuments.templateId, templateVersionId: personalDocuments.templateVersionId,
     title: personalDocuments.title, status: personalDocuments.status, isFavorite: personalDocuments.isFavorite, currentRevision: personalDocuments.currentRevision,
@@ -25,6 +28,7 @@ export async function GET(request: Request) {
     eq(personalDocuments.ownerUserId, user.id),
     includeTrash ? eq(personalDocuments.status, "trash") : archived ? eq(personalDocuments.status, "archived") : and(ne(personalDocuments.status, "trash"), ne(personalDocuments.status, "archived")),
     favorites ? eq(personalDocuments.isFavorite, 1) : undefined,
+    folderId === "none" ? isNull(personalDocuments.folderId) : folderId ? eq(personalDocuments.folderId, folderId) : undefined,
   )).orderBy(desc(personalDocuments.updatedAt)).limit(100);
   return NextResponse.json({ documents }, { headers: { "Cache-Control": "private, no-store" } });
 }

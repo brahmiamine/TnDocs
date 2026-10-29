@@ -7,8 +7,10 @@ import { renderTemplateText, validateFormAnswers } from "@/modules/documents/for
 import type { ProfileData } from "@/modules/profiles/schema";
 import { ShareManager } from "@/modules/documents/ShareManager";
 
-type EditorData = { id: string; title: string; status: string; documentType: string; revision: number; formSchema: FormSchema | null; content: { locale: "fr" | "ar"; body: string; answers: Record<string, unknown> } };
+type EditorData = { id: string; title: string; status: string; documentType: string; revision: number; formSchema: FormSchema | null; content: { title?: string; locale: "fr" | "ar"; body: string; answers: Record<string, unknown> } };
 type HistoryItem = { revision: number; createdAt: string };
+type RevisionSnapshot = { revision: number; createdAt: string; content: EditorData["content"] };
+type RevisionComparison = { left: RevisionSnapshot; right: RevisionSnapshot };
 type ProfileItem = { id: string; relationship: string; data: ProfileData };
 
 export function DocumentEditor({ documentId, locale }: { documentId: string; locale: string }) {
@@ -25,6 +27,9 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
   const [conflict, setConflict] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [comparisonVersions, setComparisonVersions] = useState<[number, number] | null>(null);
+  const [comparison, setComparison] = useState<RevisionComparison | null>(null);
+  const [comparePending, setComparePending] = useState(false);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [showProfiles, setShowProfiles] = useState(false);
   const answersValid = validateFormAnswers(document?.formSchema ?? null, answers);
@@ -119,6 +124,29 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     setShowHistory((value) => !value);
   }
 
+  useEffect(() => {
+    if (showHistory && !comparisonVersions && history.length > 1) {
+      setComparisonVersions([history[1].revision, history[0].revision]);
+    }
+  }, [showHistory, comparisonVersions, history]);
+
+  async function compareRevisions() {
+    if (!comparisonVersions || dirty) return;
+    setComparePending(true);
+    setError("");
+    try {
+      const query = new URLSearchParams({ compare: comparisonVersions.join(",") });
+      const response = await fetch("/api/v1/me/documents/" + documentId + "/revisions?" + query, { cache: "no-store" });
+      const result = await response.json() as { comparison?: RevisionComparison; message?: string };
+      if (!response.ok || !result.comparison) throw new Error(result.message ?? (isArabic ? "تعذرت مقارنة النسخ." : "Impossible de comparer ces versions."));
+      setComparison(result.comparison);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : (isArabic ? "تعذرت مقارنة النسخ." : "Impossible de comparer ces versions."));
+    } finally {
+      setComparePending(false);
+    }
+  }
+
   async function restore(sourceRevision: number) {
     if (!window.confirm(isArabic ? `استعادة النسخة ${sourceRevision}؟` : `Restaurer la version ${sourceRevision} dans une nouvelle révision ?`)) return;
     const response = await fetch(`/api/v1/me/documents/${documentId}/revisions/restore`, {
@@ -201,7 +229,43 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
         </button>
       </div>}
       {showHistory && <section className="revision-history"><h2>{isArabic ? "النسخ السابقة" : "Versions précédentes"}</h2>{history.map((item) => <article className="revision-row" key={item.revision}><span>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))}</span>{item.revision !== revision && <button className="text-link" type="button" onClick={() => void restore(item.revision)}>{isArabic ? "استعادة" : "Restaurer"}</button>}</article>)}</section>}
+      {showHistory && <section className="revision-comparison-toolbar" aria-label={isArabic ? "مقارنة النسخ" : "Comparer des versions"}>
+        <h2>{isArabic ? "مقارنة نسختين" : "Comparer deux versions"}</h2>
+        <div className="revision-comparison-controls">
+          <label>{isArabic ? "النسخة الأولى" : "Première version"}<select value={comparisonVersions?.[0] ?? ""} onChange={(event) => { setComparisonVersions([Number(event.currentTarget.value), comparisonVersions?.[1] ?? Number(event.currentTarget.value)]); setComparison(null); }}>
+            {history.map((item) => <option key={item.revision} value={item.revision}>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`}</option>)}
+          </select></label>
+          <label>{isArabic ? "النسخة الثانية" : "Deuxième version"}<select value={comparisonVersions?.[1] ?? ""} onChange={(event) => { setComparisonVersions([comparisonVersions?.[0] ?? Number(event.currentTarget.value), Number(event.currentTarget.value)]); setComparison(null); }}>
+            {history.map((item) => <option key={item.revision} value={item.revision}>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`}</option>)}
+          </select></label>
+          <button className="button" type="button" disabled={!comparisonVersions || comparisonVersions[0] === comparisonVersions[1] || dirty || comparePending} onClick={() => void compareRevisions()}>
+            {comparePending ? (isArabic ? "جارٍ المقارنة…" : "Comparaison…") : (isArabic ? "مقارنة" : "Comparer")}
+          </button>
+        </div>
+        {dirty && <p className="form-hint">{isArabic ? "احفظ التعديلات قبل مقارنة النسخ." : "Enregistrez vos modifications avant de comparer les versions."}</p>}
+        {comparison && <RevisionComparisonPanel comparison={comparison} schema={document.formSchema} locale={isArabic ? "ar" : "fr"} />}
+      </section>}
       <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} disabled={!isEditable} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields" disabled={!isEditable}><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.some((field) => field.kind === "profile") && <div className="profile-prefill"><button className="button button-quiet" type="button" onClick={() => void loadProfiles()}>{isArabic ? "ملء من ملف شخصي" : "Préremplir depuis un profil"}</button>{showProfiles && <select aria-label={isArabic ? "اختر ملفاً شخصياً" : "Choisir un profil"} defaultValue="" onChange={(event) => fillFromProfile(event.target.value)}><option value="">{isArabic ? "اختر شخصاً" : "Choisir une personne"}</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.data.fullName}</option>)}</select>}</div>}{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" disabled={!isEditable} dir={documentLocale === "ar" ? "rtl" : "ltr"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty || !isEditable}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={documentLocale === "ar" ? "rtl" : "ltr"} className="template-body">{renderTemplateText(body || (documentLocale === "ar" ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
     </>}
+  </div>;
+}
+
+function RevisionComparisonPanel({ comparison, schema, locale }: { comparison: RevisionComparison; schema: FormSchema | null; locale: "fr" | "ar" }) {
+  const formatDate = (date: string) => new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(date));
+  const formatAnswer = (value: unknown) => value === undefined || value === null || value === "" ? "—" : typeof value === "boolean" ? (value ? (locale === "ar" ? "نعم" : "Oui") : (locale === "ar" ? "لا" : "Non")) : typeof value === "string" || typeof value === "number" ? String(value) : JSON.stringify(value);
+  const fields = schema?.fields ?? [];
+  return <div className="revision-comparison-grid">
+    {([comparison.left, comparison.right] as const).map((snapshot) => <article className="revision-comparison-card" key={snapshot.revision} dir={snapshot.content.locale === "ar" ? "rtl" : "ltr"}>
+      <div className="eyebrow">{locale === "ar" ? `النسخة ${snapshot.revision}` : `Version ${snapshot.revision}`}</div>
+      <time>{formatDate(snapshot.createdAt)}</time>
+      <h3>{snapshot.content.title || (locale === "ar" ? "بدون عنوان" : "Sans titre")}</h3>
+      <div className="revision-comparison-body">{renderTemplateText(snapshot.content.body, snapshot.content.answers)}</div>
+      {fields.length > 0 && <dl className="revision-comparison-answers">{fields.map((field) => {
+        const value = snapshot.content.answers[field.key];
+        const other = snapshot === comparison.left ? comparison.right.content.answers[field.key] : comparison.left.content.answers[field.key];
+        const changed = JSON.stringify(value ?? null) !== JSON.stringify(other ?? null);
+        return <div className={changed ? "revision-comparison-changed" : ""} key={field.key}><dt>{field.label[locale]}</dt><dd>{formatAnswer(value)}</dd></div>;
+      })}</dl>}
+    </article>)}
   </div>;
 }

@@ -223,6 +223,22 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .document-preview h2 { margin: 15px 0 25px; padding-bottom: 15px; border-bottom: 1px solid var(--line); font-family: Georgia, serif; font-size: 22px; text-align: center; }
 .revision-history { margin: 0 0 20px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
 .revision-history h2 { margin: 0 0 10px; font-size: 16px; }
+.revision-comparison-toolbar { margin: 0 0 20px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.revision-comparison-toolbar h2 { margin: 0 0 12px; font-size: 16px; }
+.revision-comparison-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.revision-comparison-controls label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.revision-comparison-controls select { min-width: 150px; min-height: 42px; padding: 0 11px; border: 1px solid #dcded8; border-radius: 8px; background: white; color: var(--ink); }
+.revision-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.revision-comparison-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #faf9f7; }
+.revision-comparison-card time { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+.revision-comparison-card h3 { margin: 14px 0; font-size: 18px; }
+.revision-comparison-body { overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.75; }
+.revision-comparison-answers { margin: 16px 0 0; border-top: 1px solid var(--line); }
+.revision-comparison-answers > div { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.revision-comparison-answers dt { color: var(--muted); font-size: 12px; font-weight: 700; }
+.revision-comparison-answers dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.revision-comparison-answers .revision-comparison-changed { background: #fff2cf; }
+
 .share-manager { margin-block: 20px; }
 .share-manager h2 { margin: 0 0 8px; font-size: 18px; }
 .share-manager > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
@@ -314,6 +330,7 @@ html[dir="rtl"] .doc-signature { margin-right: auto; margin-left: 12px; }
   .admin-languages { grid-template-columns: 1fr; }
   .admin-item { flex-direction: column; }
   .document-editor-grid { grid-template-columns: 1fr; }
+  .revision-comparison-grid { grid-template-columns: 1fr; }
   .document-editor-heading { align-items: flex-start; flex-direction: column; }
   .document-body-input { min-height: 350px; }
   .dossier-layout { grid-template-columns: 1fr; }

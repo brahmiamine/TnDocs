@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import { catalogTemplateVersions, catalogTemplates, documentRevisions, personalDocuments } from "@/platform/database/schema";
 import { getCurrentUser } from "@/modules/identity/service";
 import { readJsonBody, requireSameOrigin } from "@/modules/identity/http";
 import { decryptDocumentData, encryptDocumentData } from "@/modules/documents/crypto";
-import { saveRevisionSchema } from "@/modules/documents/schema";
+import { parseRevisionPair } from "@/modules/documents/revision-comparison";
+import { type DocumentContent, saveRevisionSchema } from "@/modules/documents/schema";
 import { parseFormSchema, validateFormAnswers } from "@/modules/documents/form-schema";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ documentId: string }> }) {
@@ -15,10 +16,32 @@ export async function GET(_request: Request, { params }: { params: Promise<{ doc
   const db = database;
   if (!db) return NextResponse.json({ code: "SERVICE_UNAVAILABLE", message: "Document service is not configured." }, { status: 503 });
   const { documentId } = await params;
-  const [document] = await db.select({ id: personalDocuments.id }).from(personalDocuments).where(and(
-    eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id), eq(personalDocuments.status, "draft"),
+  const [document] = await db.select({ id: personalDocuments.id, status: personalDocuments.status }).from(personalDocuments).where(and(
+    eq(personalDocuments.id, documentId), eq(personalDocuments.ownerUserId, user.id),
   )).limit(1);
-  if (!document) return NextResponse.json({ code: "NOT_FOUND", message: "Editable document not found." }, { status: 404 });
+  if (!document || document.status === "trash") return NextResponse.json({ code: "NOT_FOUND", message: "Document not found." }, { status: 404 });
+  const pair = parseRevisionPair(new URL(_request.url).searchParams.get("compare"));
+  if (pair.kind === "invalid") return NextResponse.json({ code: "INVALID_COMPARISON", message: "Choisissez deux versions différentes." }, { status: 400 });
+  if (pair.kind === "pair") {
+    const revisions = await db.select().from(documentRevisions).where(and(
+      eq(documentRevisions.documentId, documentId), inArray(documentRevisions.revision, [pair.left, pair.right]),
+    ));
+    if (revisions.length !== 2) return NextResponse.json({ code: "REVISION_NOT_FOUND" }, { status: 404 });
+    const byNumber = new Map(revisions.map((revision) => [revision.revision, revision]));
+    const leftRevision = byNumber.get(pair.left);
+    const rightRevision = byNumber.get(pair.right);
+    if (!leftRevision || !rightRevision) return NextResponse.json({ code: "REVISION_NOT_FOUND" }, { status: 404 });
+    try {
+      const left = decryptDocumentData<DocumentContent>(leftRevision.contentCiphertext, leftRevision.encryptionKeyVersion, user.id, documentId, leftRevision.revision);
+      const right = decryptDocumentData<DocumentContent>(rightRevision.contentCiphertext, rightRevision.encryptionKeyVersion, user.id, documentId, rightRevision.revision);
+      return NextResponse.json({ comparison: {
+        left: { revision: leftRevision.revision, createdAt: leftRevision.createdAt, content: left },
+        right: { revision: rightRevision.revision, createdAt: rightRevision.createdAt, content: right },
+      } }, { headers: { "Cache-Control": "private, no-store" } });
+    } catch {
+      return NextResponse.json({ code: "REVISION_UNAVAILABLE" }, { status: 503 });
+    }
+  }
   const revisions = await db.select({ revision: documentRevisions.revision, createdAt: documentRevisions.createdAt })
     .from(documentRevisions).where(eq(documentRevisions.documentId, documentId)).orderBy(desc(documentRevisions.revision)).limit(100);
   return NextResponse.json({ revisions }, { headers: { "Cache-Control": "private, no-store" } });

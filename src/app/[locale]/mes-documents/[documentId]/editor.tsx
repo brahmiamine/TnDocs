@@ -15,6 +15,7 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
   const [document, setDocument] = useState<EditorData | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [documentLocale, setDocumentLocale] = useState<"fr" | "ar">(locale === "ar" ? "ar" : "fr");
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [revision, setRevision] = useState(0);
   const [dirty, setDirty] = useState(false);
@@ -25,7 +26,7 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
   const [showHistory, setShowHistory] = useState(false);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [showProfiles, setShowProfiles] = useState(false);
-  const latest = useRef({ title: "", body: "", answers: {} as Record<string, unknown> });
+  const latest = useRef({ title: "", body: "", locale: "fr" as "fr" | "ar", answers: {} as Record<string, unknown> });
   const revisionRef = useRef(0);
   const dirtyRef = useRef(false);
   const saving = useRef(false);
@@ -39,8 +40,8 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
       if (!response.ok) throw new Error(result.message ?? "Document not found.");
       if (!active) return;
       const item = result.document as EditorData;
-      setDocument(item); setTitle(item.title); setBody(item.content.body); setAnswers(item.content.answers); setRevision(item.revision);
-      latest.current = { title: item.title, body: item.content.body, answers: item.content.answers };
+      setDocument(item); setTitle(item.title); setBody(item.content.body); setDocumentLocale(item.content.locale); setAnswers(item.content.answers); setRevision(item.revision);
+      latest.current = { title: item.title, body: item.content.body, locale: item.content.locale, answers: item.content.answers };
       revisionRef.current = item.revision; loaded.current = true;
       setMessage(isArabic ? "تم الحفظ" : "Enregistré");
     }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Erreur"); });
@@ -57,7 +58,7 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     try {
       const response = await fetch(`/api/v1/me/documents/${documentId}/revisions`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expectedRevision, title: snapshot.title, content: { locale: isArabic ? "ar" : "fr", body: snapshot.body, answers: snapshot.answers } }),
+        body: JSON.stringify({ expectedRevision, title: snapshot.title, content: { locale: snapshot.locale, body: snapshot.body, answers: snapshot.answers } }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -124,8 +125,8 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     const result = await response.json();
     if (!response.ok) { setError(result.message ?? "Erreur"); return; }
     const content = result.content as EditorData["content"] & { title: string };
-    latest.current = { title: content.title, body: content.body, answers: content.answers };
-    setTitle(content.title); setBody(content.body); setAnswers(content.answers);
+    latest.current = { title: content.title, body: content.body, locale: content.locale, answers: content.answers };
+    setTitle(content.title); setBody(content.body); setDocumentLocale(content.locale); setAnswers(content.answers);
     revisionRef.current = result.revision; setRevision(result.revision); dirtyRef.current = false; setDirty(false);
     setMessage(isArabic ? "تمت الاستعادة كنسخة جديدة" : "Version restaurée dans une nouvelle révision"); setError("");
     setShowHistory(false);
@@ -167,7 +168,7 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     {!document ? <div className="empty-state"><p>{message}</p></div> : <>
       <div className="document-editor-heading"><div><div className="eyebrow">{isArabic ? "مسودة خاصة" : "BROUILLON PRIVÉ"}</div><h1>{isArabic ? "محرر الوثيقة" : "Éditeur de document"}</h1></div><div className="document-editor-actions"><div className="document-save-state" role="status">{dirty ? (isArabic ? "تعديلات غير محفوظة" : "Modifications en cours…") : message} · {isArabic ? `النسخة ${revision}` : `Version ${revision}`}</div><button className="button button-quiet" type="button" onClick={() => void toggleHistory()}>{isArabic ? "السجل" : "Historique"}</button><button className="button button-quiet" type="button" onClick={() => window.print()}>{isArabic ? "طباعة / PDF" : "Imprimer / PDF"}</button><a className={`button ${dirty ? "button-disabled" : ""}`} aria-disabled={dirty} onClick={(event) => { if (dirty) event.preventDefault(); }} href={`/api/v1/me/documents/${documentId}/exports/docx`}>{isArabic ? "تنزيل Word" : "Télécharger Word"}</a></div></div>
       {showHistory && <section className="revision-history"><h2>{isArabic ? "النسخ السابقة" : "Versions précédentes"}</h2>{history.map((item) => <article className="revision-row" key={item.revision}><span>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))}</span>{item.revision !== revision && <button className="text-link" type="button" onClick={() => void restore(item.revision)}>{isArabic ? "استعادة" : "Restaurer"}</button>}</article>)}</section>}
-      <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} disabled={conflict} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields" disabled={conflict}><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.some((field) => field.kind === "profile") && <div className="profile-prefill"><button className="button button-quiet" type="button" onClick={() => void loadProfiles()}>{isArabic ? "ملء من ملف شخصي" : "Préremplir depuis un profil"}</button>{showProfiles && <select aria-label={isArabic ? "اختر ملفاً شخصياً" : "Choisir un profil"} defaultValue="" onChange={(event) => fillFromProfile(event.target.value)}><option value="">{isArabic ? "اختر شخصاً" : "Choisir une personne"}</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.data.fullName}</option>)}</select>}</div>}{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" disabled={conflict} dir={isArabic ? "rtl" : "auto"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty || conflict}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={isArabic ? "rtl" : "auto"} className="template-body">{renderTemplateText(body || (isArabic ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
+      <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} disabled={conflict} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields" disabled={conflict}><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.some((field) => field.kind === "profile") && <div className="profile-prefill"><button className="button button-quiet" type="button" onClick={() => void loadProfiles()}>{isArabic ? "ملء من ملف شخصي" : "Préremplir depuis un profil"}</button>{showProfiles && <select aria-label={isArabic ? "اختر ملفاً شخصياً" : "Choisir un profil"} defaultValue="" onChange={(event) => fillFromProfile(event.target.value)}><option value="">{isArabic ? "اختر شخصاً" : "Choisir une personne"}</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.data.fullName}</option>)}</select>}</div>}{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" disabled={conflict} dir={documentLocale === "ar" ? "rtl" : "ltr"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty || conflict}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={documentLocale === "ar" ? "rtl" : "ltr"} className="template-body">{renderTemplateText(body || (documentLocale === "ar" ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
     </>}
   </div>;
 }

@@ -33,19 +33,23 @@ function queryVersion(host: string, port: number) {
   });
 }
 
-async function ensureFreshDatabase(host: string, port: number) {
-  const response = await queryVersion(host, port);
+export async function getClamAvReadiness(): Promise<"ready" | "outdated" | "unavailable" | "unconfigured"> {
+  if (!env.CLAMAV_HOST) return "unconfigured";
+  let response: string;
+  try { response = await queryVersion(env.CLAMAV_HOST, env.CLAMAV_PORT); }
+  catch { return "unavailable"; }
   const match = /^ClamAV [^/]+\/\d+\/(.+)$/.exec(response);
   const databaseDate = match ? new Date(match[1]) : new Date(Number.NaN);
   const age = Date.now() - databaseDate.getTime();
   if (!Number.isFinite(databaseDate.getTime()) || age < -24 * 60 * 60 * 1000 || age > 7 * 24 * 60 * 60 * 1000) {
-    throw new Error("Antivirus signatures are outdated");
+    return "outdated";
   }
+  return "ready";
 }
 
 export async function scanWithClamAv(data: Buffer): Promise<"clean" | "infected"> {
-  if (!env.CLAMAV_HOST) throw new Error("Antivirus scanning is not configured");
-  await ensureFreshDatabase(env.CLAMAV_HOST, env.CLAMAV_PORT);
+  const readiness = await getClamAvReadiness();
+  if (readiness !== "ready" || !env.CLAMAV_HOST) throw new Error("Antivirus scanner is not ready");
   return new Promise((resolve, reject) => {
     const socket = createConnection({ host: env.CLAMAV_HOST, port: env.CLAMAV_PORT });
     const response: Buffer[] = [];

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 const id = (name: string) => varchar(name, { length: 36 });
 
@@ -45,3 +45,15 @@ export const loginAttemptLimits = mysqlTable("login_attempt_limits", {
   windowStartedAt: timestamp("window_started_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
+
+export const personProfiles = mysqlTable("person_profiles", {
+  id: id("id").primaryKey(),
+  ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  relationship: mysqlEnum("relationship", ["self", "spouse", "child", "parent", "relative"]).notNull(),
+  authorizationBasis: mysqlEnum("authorization_basis", ["self", "consent", "legal_authority"]).notNull(),
+  authorizationConfirmedAt: timestamp("authorization_confirmed_at").notNull(),
+  dataCiphertext: text("data_ciphertext").notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("person_profiles_owner_id_idx").on(table.ownerUserId)]);

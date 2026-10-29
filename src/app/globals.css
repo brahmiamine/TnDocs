@@ -123,6 +123,23 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .empty-state p { margin: 0 auto 20px; color: var(--muted); font-size: 14px; line-height: 1.7; }
 .user-email { max-width: 250px; overflow: hidden; color: #5c625c; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .user-actions { display: flex; align-items: center; gap: 17px; }
+.profile-nav-link { color: var(--green); font-size: 13px; font-weight: 700; }
+.profile-layout { display: grid; grid-template-columns: minmax(320px, 480px) minmax(260px, 1fr); align-items: start; gap: 35px; }
+.profile-form-card { max-width: none; }
+.profile-fields select { min-height: 44px; padding: 0 12px; border: 1px solid #dcded8; border-radius: 8px; background: white; color: var(--ink); }
+.profile-field { display: flex; flex-direction: column; gap: 8px; }
+.consent-check { display: flex; align-items: flex-start; gap: 9px; margin-top: 7px; color: #4f554f; font-size: 12px !important; line-height: 1.6; }
+.consent-check input { margin-top: 3px; accent-color: var(--green); }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 9px; }
+.profile-list .section-heading { margin-bottom: 17px; }
+.profile-list .section-heading h2 { font-size: 26px; }
+.profile-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; padding: 17px; border: 1px solid var(--line); border-radius: 10px; background: white; }
+.profile-item h3 { margin: 5px 0; font-size: 16px; }
+.profile-item p { margin: 0; color: var(--muted); font-size: 12px; }
+.profile-relation { color: var(--green); font-size: 11px; font-weight: 750; }
+.profile-item-actions { display: flex; gap: 12px; }
+.text-link { border: 0; padding: 4px 0; background: transparent; color: var(--green); font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.text-link.destructive { color: var(--red-dark); }
 .logout-button { border: 0; padding: 8px 0; background: transparent; color: var(--red-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
 html[dir="rtl"] .hero h1 { letter-spacing: 0; line-height: 1.35; }
 html[dir="rtl"] .auth-card h1 { letter-spacing: 0; line-height: 1.4; }
@@ -167,6 +184,7 @@ html[dir="rtl"] .doc-signature { margin-right: auto; margin-left: 12px; }
   .auth-side { display: none; }
   .user-actions { gap: 10px; }
   .user-email { max-width: 155px; font-size: 11px; }
+  .profile-layout { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

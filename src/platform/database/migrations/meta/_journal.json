@@ -8,6 +8,13 @@
       "when": 1793272933660,
       "tag": "0000_identity-foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1793273538061,
+      "tag": "0001_encrypted-profiles",
+      "breakpoints": true
     }
   ]
 }

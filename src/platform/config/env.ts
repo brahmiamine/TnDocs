@@ -14,6 +14,7 @@ const environmentSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().default("TnDocs <no-reply@example.test>"),
   PASSWORD_PEPPER: z.string().optional(),
+  PROFILE_ENCRYPTION_KEY_V1: z.string().optional(),
 });
 
 export const env = environmentSchema.parse({
@@ -30,4 +31,5 @@ export const env = environmentSchema.parse({
   SMTP_PASSWORD: process.env.SMTP_PASSWORD,
   SMTP_FROM: process.env.SMTP_FROM,
   PASSWORD_PEPPER: process.env.PASSWORD_PEPPER,
+  PROFILE_ENCRYPTION_KEY_V1: process.env.PROFILE_ENCRYPTION_KEY_V1,
 });

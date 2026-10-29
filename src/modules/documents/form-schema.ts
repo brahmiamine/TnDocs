@@ -1,17 +1,22 @@
 import { z } from "zod";
 
+const profileField = z.enum(["fullName", "arabicName", "latinName", "dateOfBirth", "nationality", "email", "phone", "addressTunisia", "addressAbroad", "profession", "maritalStatus", "cin", "passportNumber"]);
+
 const localizedLabel = z.object({ fr: z.string().trim().min(1).max(180), ar: z.string().trim().min(1).max(180) });
 const fieldSchema = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]{0,59}$/),
-  kind: z.enum(["text", "textarea", "number", "date", "select", "checkbox"]),
+  kind: z.enum(["text", "textarea", "number", "date", "select", "checkbox", "profile"]),
   label: localizedLabel,
   required: z.boolean().default(false),
+  profileField: profileField.optional(),
   options: z.array(z.object({ value: z.string().min(1).max(120), label: localizedLabel })).max(50).optional(),
   placeholder: localizedLabel.optional(),
   maxLength: z.number().int().min(1).max(2000).optional(),
 }).superRefine((field, context) => {
   if (field.kind === "select" && (!field.options || field.options.length === 0)) context.addIssue({ code: "custom", path: ["options"], message: "Select fields need options." });
   if (field.kind !== "select" && field.options?.length) context.addIssue({ code: "custom", path: ["options"], message: "Only select fields can have options." });
+  if (field.kind === "profile" && !field.profileField) context.addIssue({ code: "custom", path: ["profileField"], message: "Profile fields need an explicit profile data mapping." });
+  if (field.kind !== "profile" && field.profileField) context.addIssue({ code: "custom", path: ["profileField"], message: "Only profile fields can map profile data." });
 });
 
 export const formSchema = z.object({ schemaVersion: z.literal(1), fields: z.array(fieldSchema).max(80) })

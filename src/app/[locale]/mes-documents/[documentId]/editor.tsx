@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormSchema } from "@/modules/documents/form-schema";
 import { renderTemplateText } from "@/modules/documents/form-schema";
+import type { ProfileData } from "@/modules/profiles/schema";
 
 type EditorData = { id: string; title: string; status: string; documentType: string; revision: number; formSchema: FormSchema | null; content: { locale: "fr" | "ar"; body: string; answers: Record<string, unknown> } };
 type HistoryItem = { revision: number; createdAt: string };
+type ProfileItem = { id: string; relationship: string; data: ProfileData };
 
 export function DocumentEditor({ documentId, locale }: { documentId: string; locale: string }) {
   const isArabic = locale === "ar";
@@ -21,6 +23,8 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
   const [conflict, setConflict] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [showProfiles, setShowProfiles] = useState(false);
   const latest = useRef({ title: "", body: "", answers: {} as Record<string, unknown> });
   const revisionRef = useRef(0);
   const dirtyRef = useRef(false);
@@ -112,12 +116,34 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     setShowHistory(false);
   }
 
+  async function loadProfiles() {
+    if (profiles.length === 0) {
+      const response = await fetch("/api/v1/me/profiles", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) { setError(result.message ?? (isArabic ? "تعذر تحميل الملفات الشخصية." : "Impossible de charger les profils.")); return; }
+      setProfiles(result.profiles as ProfileItem[]);
+    }
+    setShowProfiles((current) => !current);
+  }
+
+  function fillFromProfile(profileId: string) {
+    const profile = profiles.find((item) => item.id === profileId);
+    if (!profile || !document?.formSchema) return;
+    for (const field of document.formSchema.fields) {
+      if (field.kind !== "profile" || !field.profileField) continue;
+      const value = profile.data[field.profileField];
+      if (typeof value === "string" && value !== "") updateAnswer(field.key, value);
+    }
+    setShowProfiles(false);
+  }
+
   function renderField(field: NonNullable<FormSchema>["fields"][number]) {
     const label = field.label[isArabic ? "ar" : "fr"];
-    if (field.kind === "checkbox") return <label className="consent-check" key={field.key}><input type="checkbox" checked={answers[field.key] === true} onChange={(event) => updateAnswer(field.key, event.target.checked)} />{label}{field.required ? " *" : ""}</label>;
-    if (field.kind === "select") return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<select value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)}><option value="">{isArabic ? "اختر" : "Choisir"}</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label[isArabic ? "ar" : "fr"]}</option>)}</select></label>;
-    if (field.kind === "textarea") return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<textarea rows={3} maxLength={field.maxLength ?? 2000} placeholder={field.placeholder?.[isArabic ? "ar" : "fr"]} value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)} /></label>;
-    return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<input type={field.kind === "number" ? "number" : field.kind === "date" ? "date" : "text"} maxLength={field.kind === "text" ? field.maxLength ?? 2000 : undefined} placeholder={field.placeholder?.[isArabic ? "ar" : "fr"]} value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)} /></label>;
+    if (field.kind === "checkbox") return <label className="consent-check" key={field.key}><input type="checkbox" required={field.required} checked={answers[field.key] === true} onChange={(event) => updateAnswer(field.key, event.target.checked)} />{label}{field.required ? " *" : ""}</label>;
+    if (field.kind === "select") return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<select required={field.required} value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)}><option value="">{isArabic ? "اختر" : "Choisir"}</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label[isArabic ? "ar" : "fr"]}</option>)}</select></label>;
+    if (field.kind === "textarea") return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<textarea required={field.required} rows={3} maxLength={field.maxLength ?? 2000} placeholder={field.placeholder?.[isArabic ? "ar" : "fr"]} value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)} /></label>;
+    const inputType = field.kind === "number" ? "number" : field.kind === "date" || field.profileField === "dateOfBirth" ? "date" : field.profileField === "email" ? "email" : "text";
+    return <label className="profile-field" key={field.key}>{label}{field.required ? " *" : ""}<input type={inputType} required={field.required} maxLength={field.kind === "text" || field.kind === "profile" ? field.maxLength ?? 2000 : undefined} placeholder={field.placeholder?.[isArabic ? "ar" : "fr"]} value={typeof answers[field.key] === "string" ? answers[field.key] as string : ""} onChange={(event) => updateAnswer(field.key, event.target.value)} /></label>;
   }
 
   return <div className="document-editor-wrap">
@@ -126,7 +152,7 @@ export function DocumentEditor({ documentId, locale }: { documentId: string; loc
     {!document ? <div className="empty-state"><p>{message}</p></div> : <>
       <div className="document-editor-heading"><div><div className="eyebrow">{isArabic ? "مسودة خاصة" : "BROUILLON PRIVÉ"}</div><h1>{isArabic ? "محرر الوثيقة" : "Éditeur de document"}</h1></div><div className="document-editor-actions"><div className="document-save-state" role="status">{dirty ? (isArabic ? "تعديلات غير محفوظة" : "Modifications en cours…") : message} · {isArabic ? `النسخة ${revision}` : `Version ${revision}`}</div><button className="button button-quiet" type="button" onClick={() => void toggleHistory()}>{isArabic ? "السجل" : "Historique"}</button><button className="button button-quiet" type="button" onClick={() => window.print()}>{isArabic ? "طباعة / PDF" : "Imprimer / PDF"}</button><a className={`button ${dirty ? "button-disabled" : ""}`} aria-disabled={dirty} onClick={(event) => { if (dirty) event.preventDefault(); }} href={`/api/v1/me/documents/${documentId}/exports/docx`}>{isArabic ? "تنزيل Word" : "Télécharger Word"}</a></div></div>
       {showHistory && <section className="revision-history"><h2>{isArabic ? "النسخ السابقة" : "Versions précédentes"}</h2>{history.map((item) => <article className="revision-row" key={item.revision}><span>{isArabic ? `النسخة ${item.revision}` : `Version ${item.revision}`} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))}</span>{item.revision !== revision && <button className="text-link" type="button" onClick={() => void restore(item.revision)}>{isArabic ? "استعادة" : "Restaurer"}</button>}</article>)}</section>}
-      <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} disabled={conflict} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields" disabled={conflict}><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" disabled={conflict} dir={isArabic ? "rtl" : "auto"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty || conflict}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={isArabic ? "rtl" : "auto"} className="template-body">{renderTemplateText(body || (isArabic ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
+      <div className="document-editor-grid"><section className="auth-card document-edit-card"><label className="profile-field">{isArabic ? "العنوان" : "Titre"}<input maxLength={240} disabled={conflict} value={title} onChange={(event) => updateTitle(event.target.value)} /></label>{document.formSchema?.fields.length ? <fieldset className="document-form-fields" disabled={conflict}><legend>{isArabic ? "معلومات الوثيقة" : "Informations du document"}</legend>{document.formSchema.fields.some((field) => field.kind === "profile") && <div className="profile-prefill"><button className="button button-quiet" type="button" onClick={() => void loadProfiles()}>{isArabic ? "ملء من ملف شخصي" : "Préremplir depuis un profil"}</button>{showProfiles && <select aria-label={isArabic ? "اختر ملفاً شخصياً" : "Choisir un profil"} defaultValue="" onChange={(event) => fillFromProfile(event.target.value)}><option value="">{isArabic ? "اختر شخصاً" : "Choisir une personne"}</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.data.fullName}</option>)}</select>}</div>}{document.formSchema.fields.map(renderField)}</fieldset> : null}<label className="profile-field">{isArabic ? "نص الوثيقة" : "Texte du document"}<textarea className="document-body-input" disabled={conflict} dir={isArabic ? "rtl" : "auto"} value={body} readOnly={document.documentType !== "editable"} onChange={(event) => updateBody(event.target.value)} /></label><button className="button" type="button" onClick={() => void save()} disabled={!dirty || conflict}>{isArabic ? "حفظ الآن" : "Enregistrer maintenant"}</button><p className="form-hint">{isArabic ? "يتم حفظ تعديلاتك تلقائياً وتشفيرها في التخزين." : "Les modifications sont enregistrées automatiquement et chiffrées au stockage."}</p></section><section className="document-preview"><div className="eyebrow">{isArabic ? "معاينة" : "APERÇU"}</div><h2>{title || (isArabic ? "عنوان الوثيقة" : "Titre du document")}</h2><div dir={isArabic ? "rtl" : "auto"} className="template-body">{renderTemplateText(body || (isArabic ? "سيظهر نص الوثيقة هنا." : "Le texte du document apparaîtra ici."), answers)}</div></section></div>
     </>}
   </div>;
 }

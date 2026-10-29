@@ -198,6 +198,8 @@ h1 { max-width: 640px; margin: 21px 0 18px; font-size: clamp(42px, 5vw, 62px); l
 .revision-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .document-form-fields { display: flex; flex-direction: column; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 9px; }
 .document-form-fields legend { padding-inline: 7px; color: var(--green); font-size: 12px; font-weight: 750; }
+.profile-prefill { display: flex; flex-wrap: wrap; gap: 9px; }
+.profile-prefill select { min-width: 200px; min-height: 43px; padding: 0 10px; border: 1px solid #dcded8; border-radius: 8px; background: white; }
 .document-form-fields .profile-field input, .document-form-fields .profile-field select, .document-form-fields .profile-field textarea { width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dcded8; border-radius: 8px; background: white; color: var(--ink); font: inherit; font-size: 13px; }
 .document-form-fields .consent-check input { width: auto; min-height: 0; padding: 0; }
 .document-create-action .form-message { max-width: 480px; }

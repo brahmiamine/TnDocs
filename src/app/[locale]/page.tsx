@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 const copy = {
@@ -65,6 +66,20 @@ const copy = {
     footerLinks: ["الخصوصية", "اتصل بنا"],
   },
 } as const;
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  if (locale === "ar") return {
+    title: "وثائق وإجراءات تونسية بالفرنسية والعربية",
+    description: "اعثر على النماذج التونسية وحضّر وثائقك في مساحة خاصة.",
+    alternates: { canonical: "/ar", languages: { fr: "/fr", ar: "/ar" } },
+  };
+  return {
+    title: "Vos démarches tunisiennes, simplifiées",
+    description: "Trouvez des modèles tunisiens et préparez vos documents en français ou en arabe dans un espace privé.",
+    alternates: { canonical: "/fr", languages: { fr: "/fr", ar: "/ar" } },
+  };
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

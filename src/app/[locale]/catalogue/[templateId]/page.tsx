@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicTemplate } from "@/modules/catalog/public";
 import { getCurrentUser } from "@/modules/identity/service";
@@ -6,7 +7,28 @@ import { CreateDocumentButton } from "@/modules/documents/CreateDocumentButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function CatalogTemplatePage({ params }: { params: Promise<{ locale: string; templateId: string }> }) {
+type PageProps = { params: Promise<{ locale: string; templateId: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale, templateId } = await params;
+  if (locale !== "fr" && locale !== "ar") return {};
+  const template = await getPublicTemplate(templateId, locale);
+  if (!template) return {};
+  const alternateLocale = locale === "fr" ? "ar" : "fr";
+  const alternate = await getPublicTemplate(templateId, alternateLocale);
+  const languages = {
+    [locale]: "/" + locale + "/catalogue/" + templateId,
+    ...(alternate ? { [alternateLocale]: "/" + alternateLocale + "/catalogue/" + templateId } : {}),
+  };
+  return {
+    title: template.title,
+    description: template.summary,
+    alternates: { canonical: "/" + locale + "/catalogue/" + templateId, languages },
+    openGraph: { title: template.title, description: template.summary, type: "article", url: "/" + locale + "/catalogue/" + templateId },
+  };
+}
+
+export default async function CatalogTemplatePage({ params }: PageProps) {
   const { locale, templateId } = await params;
   if (locale !== "fr" && locale !== "ar") notFound();
   const template = await getPublicTemplate(templateId, locale);

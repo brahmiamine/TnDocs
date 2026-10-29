@@ -5,7 +5,7 @@ import { database } from "@/platform/database/client";
 import { personalDossierItems, personalDossiers, storedFiles } from "@/platform/database/schema";
 import { decryptAttachment, encryptAttachment } from "@/modules/dossiers/file-crypto";
 import { attachmentStorageKey, deleteStoredAttachment, readEncryptedAttachment, writeEncryptedAttachment } from "@/modules/dossiers/file-storage";
-import { detectAllowedMimeType, scanWithClamAv } from "@/modules/dossiers/clamav";
+import { detectAllowedMimeType, getImageDimensions, scanWithClamAv } from "@/modules/dossiers/clamav";
 import { getCurrentUser } from "@/modules/identity/service";
 import { requireSameOrigin } from "@/modules/identity/http";
 
@@ -39,6 +39,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ dos
   const data = Buffer.from(await value.arrayBuffer());
   const mimeType = detectAllowedMimeType(data);
   if (!mimeType || value.type !== mimeType) return NextResponse.json({ code: "UNSUPPORTED_FILE_TYPE" }, { status: 415 });
+  if (mimeType !== "application/pdf") {
+    const dimensions = getImageDimensions(data, mimeType);
+    if (!dimensions || dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 12_000 || dimensions.height > 12_000 || dimensions.width * dimensions.height > 20_000_000) {
+      return NextResponse.json({ code: "IMAGE_DIMENSIONS_INVALID" }, { status: 422 });
+    }
+  }
   const [usage] = await database.select({ byteSize: sql<number>`coalesce(sum(${storedFiles.byteSize}), 0)` })
     .from(storedFiles).where(eq(storedFiles.ownerUserId, user.id));
   const previousSize = item.storedFileId ? await database.select({ byteSize: storedFiles.byteSize }).from(storedFiles).where(eq(storedFiles.id, item.storedFileId)).then((rows) => rows[0]?.byteSize ?? 0) : 0;

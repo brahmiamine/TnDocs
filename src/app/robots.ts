@@ -7,9 +7,9 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: ["/fr", "/ar"],
       disallow: [
-        "/api/", "/fr/admin/", "/ar/admin/", "/fr/connexion/", "/ar/connexion/",
-        "/fr/inscription/", "/ar/inscription/", "/fr/mes-documents/", "/ar/mes-documents/",
-        "/fr/profils/", "/ar/profils/", "/fr/dossiers/", "/ar/dossiers/", "/fr/partage/", "/ar/partage/",
+        "/api", "/fr/admin", "/ar/admin", "/fr/connexion", "/ar/connexion",
+        "/fr/inscription", "/ar/inscription", "/fr/mes-documents", "/ar/mes-documents",
+        "/fr/profils", "/ar/profils", "/fr/dossiers", "/ar/dossiers", "/fr/partage", "/ar/partage",
         "/fr/mot-de-passe-oublie", "/ar/mot-de-passe-oublie",
         "/fr/reinitialiser-mot-de-passe", "/ar/reinitialiser-mot-de-passe",
         "/fr/verifier-email", "/ar/verifier-email",

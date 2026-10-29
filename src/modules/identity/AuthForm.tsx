@@ -12,6 +12,7 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [magicLinkPending, setMagicLinkPending] = useState(false);
   const isRegister = mode === "register";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -39,6 +40,26 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
     }
   }
 
+  async function requestMagicLink() {
+    setError("");
+    setMessage("");
+    setMagicLinkPending(true);
+    try {
+      const response = await fetch("/api/v1/auth/magic-link", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, locale }),
+      });
+      if (!response.ok) throw new Error(isArabic ? "تعذر إرسال الطلب. حاول لاحقاً." : "Impossible d’envoyer la demande. Réessayez plus tard.");
+      setMessage(isArabic
+        ? "إذا كان هذا البريد مرتبطاً بحساب نشط، فستصلك رسالة تحتوي على رابط اتصال صالح لمدة 15 دقيقة."
+        : "Si cette adresse correspond à un compte actif, un lien de connexion valable 15 minutes vous sera envoyé.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : (isArabic ? "تعذر الاتصال بالخدمة." : "Le service est momentanément indisponible."));
+    } finally {
+      setMagicLinkPending(false);
+    }
+  }
+
   return (
     <section className="auth-card">
       <div className="eyebrow">{isRegister ? (isArabic ? "إنشاء حساب" : "CRÉER UN COMPTE") : (isArabic ? "مساحتك الشخصية" : "VOTRE ESPACE PERSONNEL")}</div>
@@ -54,6 +75,7 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
         {error && <p className="form-message form-error" role="alert">{error}</p>}
         {message && <p className="form-message form-success" role="status">{message}</p>}
         <button className="button auth-submit" type="submit" disabled={pending}>{pending ? (isArabic ? "جارٍ الإرسال…" : "En cours…") : (isRegister ? (isArabic ? "إنشاء الحساب" : "Créer mon compte") : (isArabic ? "تسجيل الدخول" : "Se connecter"))}</button>
+        {!isRegister && <button className="button button-quiet auth-submit" type="button" disabled={!email || magicLinkPending} onClick={() => void requestMagicLink()}>{magicLinkPending ? (isArabic ? "جارٍ إرسال الرابط…" : "Envoi du lien…") : (isArabic ? "إرسال رابط تسجيل دخول إلى بريدي" : "Recevoir un lien de connexion par email")}</button>}
       </form>
       <p className="auth-switch">{isRegister ? (isArabic ? "لديك حساب؟" : "Vous avez déjà un compte ?") : (isArabic ? "ليس لديك حساب؟" : "Pas encore de compte ?")} <Link href={`/${locale}/${isRegister ? "connexion" : "inscription"}`}>{isRegister ? (isArabic ? "سجّل الدخول" : "Se connecter") : (isArabic ? "إنشاء حساب" : "Créer un compte")}</Link></p>
     </section>

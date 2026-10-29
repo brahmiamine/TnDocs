@@ -1,0 +1,1 @@
+ALTER TABLE `personal_document_shares` MODIFY COLUMN `permission` enum('view','copy') NOT NULL DEFAULT 'view';

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, gt, isNull, ne } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { database } from "@/platform/database/client";
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ code: "SHARE_UNAVAILABLE" }, { status: 404, headers: { "Cache-Control": "no-store" } });
   const [shared] = await database.select({
     shareId: personalDocumentShares.id, documentId: personalDocuments.id, ownerId: personalDocuments.ownerUserId,
+    permission: personalDocumentShares.permission,
     revision: documentRevisions.revision, ciphertext: documentRevisions.contentCiphertext,
     encryptionKeyVersion: documentRevisions.encryptionKeyVersion,
   }).from(personalDocumentShares)
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     ))
     .where(and(
       eq(personalDocumentShares.tokenHash, hashSecretToken(parsed.data.token)),
-      eq(personalDocumentShares.permission, "view"), isNull(personalDocumentShares.revokedAt),
+      inArray(personalDocumentShares.permission, ["view", "copy"]), isNull(personalDocumentShares.revokedAt),
       gt(personalDocumentShares.expiresAt, new Date()), ne(personalDocuments.status, "trash"),
     )).limit(1);
   if (!shared) return NextResponse.json({ code: "SHARE_UNAVAILABLE" }, { status: 404, headers: { "Cache-Control": "no-store" } });
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
       shared.ciphertext, shared.encryptionKeyVersion, shared.ownerId, shared.documentId, shared.revision,
     ));
     await database.insert(personalDocumentShareEvents).values({ id: randomUUID(), shareId: shared.shareId, eventType: "accessed" });
-    return NextResponse.json({ content }, { headers: { "Cache-Control": "no-store, private", "Referrer-Policy": "no-referrer" } });
+    return NextResponse.json({ content, permission: shared.permission }, { headers: { "Cache-Control": "no-store, private", "Referrer-Policy": "no-referrer" } });
   } catch {
     return NextResponse.json({ code: "SHARE_UNAVAILABLE" }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }

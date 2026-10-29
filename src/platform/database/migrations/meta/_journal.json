@@ -43,6 +43,13 @@
       "when": 1793278092979,
       "tag": "0005_personal_document_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1793278337798,
+      "tag": "0006_share_copy_permission",
+      "breakpoints": true
     }
   ]
 }

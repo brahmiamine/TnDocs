@@ -77,7 +77,7 @@ export const personalDocumentShares = mysqlTable("personal_document_shares", {
   documentId: id("document_id").notNull().references(() => personalDocuments.id, { onDelete: "cascade" }),
   revision: int("revision").notNull(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull(),
-  permission: mysqlEnum("permission", ["view"]).notNull().default("view"),
+  permission: mysqlEnum("permission", ["view", "copy"]).notNull().default("view"),
   expiresAt: timestamp("expires_at").notNull(),
   revokedAt: timestamp("revoked_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

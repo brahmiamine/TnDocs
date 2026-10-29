@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Share = { id: string; revision: number; createdAt: string; expiresAt: string; revokedAt: string | null };
+type Share = { id: string; revision: number; permission: "view" | "copy"; createdAt: string; expiresAt: string; revokedAt: string | null };
 
 export function ShareManager({ documentId, locale, disabled }: { documentId: string; locale: "fr" | "ar"; disabled: boolean }) {
   const isArabic = locale === "ar";
   const [shares, setShares] = useState<Share[]>([]);
   const [days, setDays] = useState(7);
+  const [permission, setPermission] = useState<"view" | "copy">("view");
   const [newUrl, setNewUrl] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +28,7 @@ export function ShareManager({ documentId, locale, disabled }: { documentId: str
     try {
       const response = await fetch(`/api/v1/me/documents/${documentId}/shares`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresInDays: days, locale }),
+        body: JSON.stringify({ expiresInDays: days, locale, permission }),
       });
       const result = await response.json() as { url?: string };
       if (!response.ok || !result.url) throw new Error(isArabic ? "تعذر إنشاء الرابط." : "Impossible de créer le lien.");
@@ -65,6 +66,11 @@ export function ShareManager({ documentId, locale, disabled }: { documentId: str
         <option value={7}>{isArabic ? "7 أيام" : "7 jours"}</option>
         <option value={30}>{isArabic ? "30 يوماً" : "30 jours"}</option>
       </select>
+      <label htmlFor="share-permission">{isArabic ? "الصلاحية" : "Droit"}</label>
+      <select id="share-permission" value={permission} onChange={(event) => setPermission(event.target.value as "view" | "copy")}>
+        <option value="view">{isArabic ? "عرض" : "Consulter"}</option>
+        <option value="copy">{isArabic ? "عرض ونسخ" : "Consulter et copier"}</option>
+      </select>
       <button className="button button-quiet" type="button" disabled={disabled || busy} onClick={() => void createShare()}>
         {busy ? (isArabic ? "جارٍ الإنشاء…" : "Création…") : (isArabic ? "إنشاء رابط" : "Créer un lien")}
       </button>
@@ -76,7 +82,7 @@ export function ShareManager({ documentId, locale, disabled }: { documentId: str
       const expired = new Date(share.expiresAt).getTime() <= Date.now();
       const revoked = Boolean(share.revokedAt);
       return <article className="revision-row" key={share.id}>
-        <span>{isArabic ? `النسخة ${share.revision}` : `Révision ${share.revision}`} · {revoked ? (isArabic ? "ملغى" : "Révoqué") : expired ? (isArabic ? "منتهي" : "Expiré") : (isArabic ? "نشط" : "Actif")} · {new Intl.DateTimeFormat(isArabic ? "ar-TN" : "fr-FR", { dateStyle: "medium" }).format(new Date(share.expiresAt))}</span>
+        <span>{isArabic ? `النسخة ${share.revision}` : `Révision ${share.revision}`} · {share.permission === "copy" ? (isArabic ? "عرض ونسخ" : "Consulter et copier") : (isArabic ? "عرض فقط" : "Consultation seule")} · {revoked ? (isArabic ? "ملغى" : "Révoqué") : expired ? (isArabic ? "منتهي" : "Expiré") : (isArabic ? "نشط" : "Actif")} · {new Intl.DateTimeFormat(isArabic ? "ar-TN" : "fr-FR", { dateStyle: "medium" }).format(new Date(share.expiresAt))}</span>
         {!revoked && !expired && <button className="text-link destructive" type="button" onClick={() => void revoke(share.id)}>{isArabic ? "إلغاء" : "Révoquer"}</button>}
       </article>;
     })}</div>}

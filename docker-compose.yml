@@ -11,6 +11,9 @@ services:
     environment:
       DATABASE_URL: mysql://tndocs:tndocs_dev_only@mariadb:3306/tndocs
       MEILISEARCH_URL: http://meilisearch:7700
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -20,6 +23,8 @@ services:
       mariadb:
         condition: service_healthy
       meilisearch:
+        condition: service_started
+      mailpit:
         condition: service_started
 
   mariadb:
@@ -48,6 +53,12 @@ services:
       - "127.0.0.1:7700:7700"
     volumes:
       - meilisearch_data:/meili_data
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
 
   caddy:
     image: caddy:2-alpine

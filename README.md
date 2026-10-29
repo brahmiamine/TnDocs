@@ -25,7 +25,8 @@ MariaDB et Meilisearch n'écoutent que sur localhost. Le profil Caddy de prévis
 ## État du développement
 
 - Phase 1 en cours : socle Next.js, routes FR/AR, styles responsive, Compose local, schéma Drizzle initial et intégration continue.
-- Les liens du catalogue et de l'espace personnel servent de points d'entrée pour les phases catalogue et identité.
+- Phase identité en cours : création de compte, confirmation email, connexion, session révocable et page « Mes documents » protégée.
+- Compose inclut Mailpit pour intercepter les emails de développement. Son interface est disponible sur `http://localhost:8025`.
 - Aucune démarche réelle n'est publiée à ce stade. Les modèles nécessitant vérification de sources et de droits seront ajoutés après revue.
 - Aucun secret, service d'IA ou déploiement du VPS n'est configuré par cette fondation.
 
@@ -37,6 +38,7 @@ npm run typecheck
 npm run build
 npm run db:generate
 npm run db:migrate
+npm run db:push
 ```
 
-Les décisions du socle sont consignées dans `docs/adr/`.
+`db:push` sert au développement local uniquement. Utilisez les migrations versionnées sur les environnements partagés. Configurez un serveur SMTP et remplacez `PASSWORD_PEPPER` avant tout déploiement. Les décisions du socle sont consignées dans `docs/adr/`.

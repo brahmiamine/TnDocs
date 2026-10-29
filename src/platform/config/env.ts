@@ -7,6 +7,13 @@ const environmentSchema = z.object({
   MEILISEARCH_URL: z.string().url().optional(),
   MEILISEARCH_MASTER_KEY: z.string().optional(),
   STORAGE_ROOT: z.string().default("./.data/storage"),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().default("TnDocs <no-reply@example.test>"),
+  PASSWORD_PEPPER: z.string().optional(),
 });
 
 export const env = environmentSchema.parse({
@@ -16,4 +23,11 @@ export const env = environmentSchema.parse({
   MEILISEARCH_URL: process.env.MEILISEARCH_URL,
   MEILISEARCH_MASTER_KEY: process.env.MEILISEARCH_MASTER_KEY,
   STORAGE_ROOT: process.env.STORAGE_ROOT,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_SECURE: process.env.SMTP_SECURE,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  SMTP_FROM: process.env.SMTP_FROM,
+  PASSWORD_PEPPER: process.env.PASSWORD_PEPPER,
 });

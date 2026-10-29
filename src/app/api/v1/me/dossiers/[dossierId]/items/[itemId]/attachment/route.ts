@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { database } from "@/platform/database/client";
 import { personalDossierItems, personalDossiers, storedFiles } from "@/platform/database/schema";
 import { decryptAttachment, encryptAttachment } from "@/modules/dossiers/file-crypto";
+import { attachmentDisposition } from "@/modules/dossiers/attachment-response";
 import { attachmentStorageKey, deleteStoredAttachment, readEncryptedAttachment, writeEncryptedAttachment } from "@/modules/dossiers/file-storage";
 import { detectAllowedMimeType, getImageDimensions, scanWithClamAv } from "@/modules/dossiers/clamav";
 import { getCurrentUser } from "@/modules/identity/service";
@@ -91,7 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dos
   }
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ dossierId: string; itemId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ dossierId: string; itemId: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 });
   if (!database) return NextResponse.json({ code: "SERVICE_UNAVAILABLE" }, { status: 503 });
@@ -109,10 +110,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dos
     const ciphertext = await readEncryptedAttachment(row.storageKey);
     const data = decryptAttachment(ciphertext, row.keyVersion, user.id, row.fileId);
     if (data.byteLength !== row.byteSize || createHash("sha256").update(data).digest("hex") !== row.sha256) throw new Error("Attachment integrity check failed");
-    const extension = row.mimeType === "application/pdf" ? "pdf" : row.mimeType === "image/png" ? "png" : "jpg";
+    const inline = new URL(request.url).searchParams.get("inline") === "1";
     return new NextResponse(new Uint8Array(data), { headers: {
       "Content-Type": row.mimeType, "Content-Length": String(row.byteSize),
-      "Content-Disposition": `attachment; filename="tndocs-piece.${extension}"`,
+      "Content-Disposition": attachmentDisposition(row.mimeType, inline),
       "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "sandbox", "Referrer-Policy": "no-referrer",
     } });

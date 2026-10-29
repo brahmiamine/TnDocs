@@ -82,6 +82,29 @@ export const documentRevisions = mysqlTable("document_revisions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [uniqueIndex("document_revisions_document_revision_unique").on(table.documentId, table.revision), index("document_revisions_created_idx").on(table.documentId, table.createdAt)]);
 
+export const personalDossiers = mysqlTable("personal_dossiers", {
+  id: id("id").primaryKey(),
+  ownerUserId: id("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  titleCiphertext: text("title_ciphertext").notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  status: mysqlEnum("status", ["open", "archived", "trash"]).notNull().default("open"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("personal_dossiers_owner_updated_idx").on(table.ownerUserId, table.updatedAt)]);
+
+export const personalDossierItems = mysqlTable("personal_dossier_items", {
+  id: id("id").primaryKey(),
+  dossierId: id("dossier_id").notNull().references(() => personalDossiers.id, { onDelete: "cascade" }),
+  linkedDocumentId: id("linked_document_id").references(() => personalDocuments.id, { onDelete: "set null" }),
+  kind: mysqlEnum("kind", ["checklist", "document"]).notNull().default("checklist"),
+  status: mysqlEnum("status", ["missing", "added", "reviewed", "expired"]).notNull().default("missing"),
+  required: int("required").notNull().default(1),
+  labelCiphertext: text("label_ciphertext").notNull(),
+  encryptionKeyVersion: varchar("encryption_key_version", { length: 8 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("personal_dossier_items_dossier_idx").on(table.dossierId), index("personal_dossier_items_document_idx").on(table.linkedDocumentId)]);
+
 export const catalogCategories = mysqlTable("catalog_categories", {
   id: id("id").primaryKey(),
   parentId: id("parent_id").references((): AnyMySqlColumn => catalogCategories.id, { onDelete: "set null" }),

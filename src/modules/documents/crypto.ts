@@ -27,3 +27,11 @@ export function decryptDocumentData<T>(encoded: string, keyVersion: string, owne
   const plaintext = Buffer.concat([decipher.update(Buffer.from(ciphertextValue, "base64url")), decipher.final()]).toString("utf8");
   return JSON.parse(plaintext) as T;
 }
+
+export function encryptDossierData(value: unknown, ownerId: string, recordId: string) {
+  return encryptDocumentData(value, ownerId, recordId, 0);
+}
+
+export function decryptDossierData<T>(encoded: string, keyVersion: string, ownerId: string, recordId: string): T {
+  return decryptDocumentData<T>(encoded, keyVersion, ownerId, recordId, 0);
+}
